@@ -45,6 +45,24 @@ h2 { font-size: 25px; letter-spacing: -.02em; }
 .subtitle { margin: 8px 0 0; color: var(--muted); }
 .primary-button { border: 0; padding: 13px 18px; border-radius: 10px; background: var(--green); color: white; font-weight: 700; box-shadow: 0 8px 20px rgba(23,111,214,.22); }
 .primary-button:hover { background: #0d59b5; }
+.topbar-actions { display: flex; align-items: center; gap: 12px; }
+.social-links { display: flex; align-items: center; gap: 8px; }
+.social-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  color: white;
+  box-shadow: 0 8px 20px rgba(7,26,53,.14);
+  transition: transform 160ms ease, box-shadow 160ms ease;
+}
+.social-link:hover,
+.social-link:focus-visible { transform: translateY(-2px); box-shadow: 0 12px 24px rgba(7,26,53,.2); outline: 3px solid rgba(23,111,214,.18); }
+.social-link svg { width: 23px; height: 23px; fill: currentColor; }
+.social-link.linkedin { background: #0a66c2; }
+.social-link.whatsapp { background: #25d366; }
 .summary-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin: 36px 0 16px; }
 .summary-card, .panel { background: var(--card); border: 1px solid var(--line); border-radius: 16px; box-shadow: var(--shadow); }
 .summary-card { padding: 20px; }
@@ -101,6 +119,7 @@ form input:focus { border-color: var(--green); box-shadow: 0 0 0 3px var(--green
 @media (max-width: 680px) {
   .sidebar nav { display: none; }
   .topbar { align-items: flex-start; flex-direction: column; }
+  .topbar-actions { width: 100%; flex-wrap: wrap; }
   .summary-grid, .content-grid { grid-template-columns: 1fr; }
   .payments-heading { align-items: flex-start; flex-direction: column; }
   .search, .search input { width: 100%; }
