@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="description" content="Futura Group rent and property tracker">
   <title>Futura Group</title>
-  <link rel="stylesheet" href="styles.css?v=social-links-v1">
+  <link rel="stylesheet" href="styles.css?v=management-pages-v1">
 </head>
 <body>
   <div class="app-shell">
@@ -16,8 +16,8 @@
       <nav aria-label="Main navigation">
         <button id="overviewNav" class="nav-item active" type="button">Overview</button>
         <button id="propertiesNav" class="nav-item" type="button">Properties</button>
-        <button class="nav-item" type="button">Tenants</button>
-        <button class="nav-item" type="button">Payments</button>
+        <button id="tenantsNav" class="nav-item" type="button">Tenants</button>
+        <button id="paymentsNav" class="nav-item" type="button">Payments</button>
       </nav>
       <div class="sidebar-note">
         <strong>Local & private</strong>
@@ -98,6 +98,94 @@
         </header>
         <div id="propertyGrid" class="property-grid" aria-label="Futura Group properties"></div>
       </section>
+
+      <section id="tenantsView" class="page-view" hidden>
+        <header class="topbar page-header">
+          <div>
+            <p class="eyebrow">TENANT DIRECTORY</p>
+            <h1>Tenants</h1>
+            <p class="subtitle">Search occupants and review their current rent status.</p>
+          </div>
+          <button id="addTenantPaymentButton" class="primary-button" type="button">+ Record payment</button>
+        </header>
+        <section id="tenantSummary" class="mini-summary-grid" aria-label="Tenant summary"></section>
+        <section class="panel directory-panel">
+          <div class="directory-toolbar">
+            <div>
+              <p class="eyebrow">ALL OCCUPANTS</p>
+              <h2>Tenant directory</h2>
+            </div>
+            <label class="directory-search">
+              <span>Search tenants</span>
+              <input id="tenantSearch" type="search" placeholder="Search tenant or property">
+            </label>
+          </div>
+          <div class="table-wrap">
+            <table class="management-table">
+              <thead>
+                <tr>
+                  <th>Tenant</th>
+                  <th>Property</th>
+                  <th>Unit</th>
+                  <th>Monthly rent</th>
+                  <th>Payment status</th>
+                </tr>
+              </thead>
+              <tbody id="tenantTable"></tbody>
+            </table>
+          </div>
+        </section>
+      </section>
+
+      <section id="paymentsView" class="page-view" hidden>
+        <header class="topbar page-header">
+          <div>
+            <p class="eyebrow">PAYMENT MANAGEMENT</p>
+            <h1>Payments</h1>
+            <p class="subtitle">Review all rent activity and quickly find outstanding balances.</p>
+          </div>
+          <button id="addLedgerPaymentButton" class="primary-button" type="button">+ Record payment</button>
+        </header>
+        <section id="paymentSummary" class="mini-summary-grid" aria-label="Payment summary"></section>
+        <section class="panel directory-panel">
+          <div class="directory-toolbar">
+            <div>
+              <p class="eyebrow">ALL TRANSACTIONS</p>
+              <h2>Payment ledger</h2>
+            </div>
+            <div class="ledger-filters">
+              <label class="directory-search">
+                <span>Search payments</span>
+                <input id="paymentSearch" type="search" placeholder="Search tenant or property">
+              </label>
+              <label class="status-filter">
+                <span>Status</span>
+                <select id="paymentStatusFilter">
+                  <option value="all">All statuses</option>
+                  <option value="paid">Paid</option>
+                  <option value="overdue">Overdue</option>
+                  <option value="due">Due</option>
+                </select>
+              </label>
+            </div>
+          </div>
+          <div class="table-wrap">
+            <table class="management-table">
+              <thead>
+                <tr>
+                  <th>Tenant</th>
+                  <th>Property</th>
+                  <th>Rent</th>
+                  <th>Due date</th>
+                  <th>Paid on</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody id="allPaymentTable"></tbody>
+            </table>
+          </div>
+        </section>
+      </section>
     </main>
   </div>
 
@@ -122,6 +210,6 @@
     </form>
   </dialog>
 
-  <script src="app.js?v=social-links-v1"></script>
+  <script src="app.js?v=management-pages-v1"></script>
 </body>
 </html>

@@ -31,8 +31,15 @@ const form = document.querySelector("#paymentForm");
 const propertyGrid = document.querySelector("#propertyGrid");
 const overviewView = document.querySelector("#overviewView");
 const propertiesView = document.querySelector("#propertiesView");
+const tenantsView = document.querySelector("#tenantsView");
+const paymentsView = document.querySelector("#paymentsView");
 const overviewNav = document.querySelector("#overviewNav");
 const propertiesNav = document.querySelector("#propertiesNav");
+const tenantsNav = document.querySelector("#tenantsNav");
+const paymentsNav = document.querySelector("#paymentsNav");
+const tenantSearch = document.querySelector("#tenantSearch");
+const paymentSearch = document.querySelector("#paymentSearch");
+const paymentStatusFilter = document.querySelector("#paymentStatusFilter");
 
 function loadRecords() {
   try {
@@ -100,6 +107,8 @@ function render() {
     : '<p class="empty">Everything is paid. Nice work.</p>';
 
   renderProperties();
+  renderTenants(tenantSearch.value);
+  renderPayments(paymentSearch.value, paymentStatusFilter.value);
 }
 
 function renderProperties() {
@@ -154,18 +163,90 @@ function renderProperties() {
   }).join("");
 }
 
+function renderTenants(query = "") {
+  const normalized = query.trim().toLowerCase();
+  const filtered = records.filter(record =>
+    `${record.tenant} ${record.property}`.toLowerCase().includes(normalized)
+  );
+  const paidCount = records.filter(record => getStatus(record) === "paid").length;
+  const pendingCount = records.length - paidCount;
+
+  document.querySelector("#tenantSummary").innerHTML = [
+    ["Active tenants", records.length],
+    ["Rent up to date", paidCount],
+    ["Need attention", pendingCount]
+  ].map(([label, value]) => `
+    <article class="mini-summary-card"><span>${label}</span><strong>${value}</strong></article>
+  `).join("");
+
+  document.querySelector("#tenantTable").innerHTML = filtered.map(record => {
+    const parts = record.property.split(" · ");
+    const status = getStatus(record);
+    return `<tr>
+      <td><strong>${record.tenant}</strong></td>
+      <td>${parts[0]}</td>
+      <td>${parts[1] || "Unit"}</td>
+      <td>${currency.format(record.amount)}</td>
+      <td><span class="status ${status}">${status}</span></td>
+    </tr>`;
+  }).join("") || '<tr><td colspan="5" class="empty">No matching tenants found.</td></tr>';
+}
+
+function renderPayments(query = "", statusFilter = "all") {
+  const normalized = query.trim().toLowerCase();
+  const filtered = records.filter(record => {
+    const matchesSearch = `${record.tenant} ${record.property}`.toLowerCase().includes(normalized);
+    const matchesStatus = statusFilter === "all" || getStatus(record) === statusFilter;
+    return matchesSearch && matchesStatus;
+  });
+  const collected = records.filter(record => record.paidDate)
+    .reduce((sum, record) => sum + record.amount, 0);
+  const outstanding = records.filter(record => !record.paidDate)
+    .reduce((sum, record) => sum + record.amount, 0);
+
+  document.querySelector("#paymentSummary").innerHTML = [
+    ["Transactions", records.length],
+    ["Collected", currency.format(collected)],
+    ["Outstanding", currency.format(outstanding)]
+  ].map(([label, value]) => `
+    <article class="mini-summary-card"><span>${label}</span><strong>${value}</strong></article>
+  `).join("");
+
+  document.querySelector("#allPaymentTable").innerHTML = filtered.map(record => {
+    const status = getStatus(record);
+    return `<tr>
+      <td><strong>${record.tenant}</strong></td>
+      <td>${record.property}</td>
+      <td>${currency.format(record.amount)}</td>
+      <td>${formatDate(record.dueDate)}</td>
+      <td>${formatDate(record.paidDate)}</td>
+      <td><span class="status ${status}">${status}</span></td>
+    </tr>`;
+  }).join("") || '<tr><td colspan="6" class="empty">No matching payments found.</td></tr>';
+}
+
 function showView(view) {
-  const showProperties = view === "properties";
-  overviewView.hidden = showProperties;
-  propertiesView.hidden = !showProperties;
-  overviewNav.classList.toggle("active", !showProperties);
-  propertiesNav.classList.toggle("active", showProperties);
+  const views = { overview: overviewView, properties: propertiesView, tenants: tenantsView, payments: paymentsView };
+  const navItems = { overview: overviewNav, properties: propertiesNav, tenants: tenantsNav, payments: paymentsNav };
+  Object.entries(views).forEach(([name, element]) => {
+    element.hidden = name !== view;
+  });
+  Object.entries(navItems).forEach(([name, element]) => {
+    element.classList.toggle("active", name === view);
+  });
 }
 
 document.querySelector("#addPaymentButton").addEventListener("click", () => dialog.showModal());
 document.querySelector("#addPropertyPaymentButton").addEventListener("click", () => dialog.showModal());
+document.querySelector("#addTenantPaymentButton").addEventListener("click", () => dialog.showModal());
+document.querySelector("#addLedgerPaymentButton").addEventListener("click", () => dialog.showModal());
 overviewNav.addEventListener("click", () => showView("overview"));
 propertiesNav.addEventListener("click", () => showView("properties"));
+tenantsNav.addEventListener("click", () => showView("tenants"));
+paymentsNav.addEventListener("click", () => showView("payments"));
+tenantSearch.addEventListener("input", event => renderTenants(event.target.value));
+paymentSearch.addEventListener("input", event => renderPayments(event.target.value, paymentStatusFilter.value));
+paymentStatusFilter.addEventListener("change", event => renderPayments(paymentSearch.value, event.target.value));
 document.querySelector("#closeDialog").addEventListener("click", () => dialog.close());
 dialog.addEventListener("click", event => {
   if (event.target === dialog) dialog.close();
