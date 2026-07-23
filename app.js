@@ -76,12 +76,17 @@ function render() {
     ["Monthly rent", currency.format(totalRent), "Expected this month"],
     ["Collected", currency.format(collected), `${paid.length} payments received`],
     ["Outstanding", currency.format(outstandingTotal), `${outstanding.length} payments pending`]
-  ].map(([label, value, detail]) => `
-    <article class="summary-card">
+  ].map(([label, value, detail], index) => `
+    <${index === 0 ? "button" : "article"}
+      class="summary-card${index === 0 ? " summary-card-link" : ""}"
+      ${index === 0 ? 'type="button" aria-label="Open properties"' : ""}>
       <span class="label">${label}</span>
       <div class="value">${value}</div>
       <span class="detail">${detail}</span>
-    </article>`).join("");
+      ${index === 0 ? '<span class="card-action">View houses →</span>' : ""}
+    </${index === 0 ? "button" : "article"}>`).join("");
+
+  document.querySelector(".summary-card-link").addEventListener("click", () => showView("properties"));
 
   document.querySelector("#collectionRate").textContent = `${rate}% collected`;
   document.querySelector("#collectionProgress").style.width = `${rate}%`;

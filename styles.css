@@ -120,6 +120,32 @@ form input:focus { border-color: var(--green); box-shadow: 0 0 0 3px var(--green
   gap: 18px;
 }
 
+.summary-card-link {
+  width: 100%;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  appearance: none;
+  transition: transform 160ms ease, border-color 160ms ease, box-shadow 160ms ease;
+}
+
+.summary-card-link:hover,
+.summary-card-link:focus-visible {
+  transform: translateY(-2px);
+  border-color: var(--accent);
+  box-shadow: 0 16px 30px rgba(23, 111, 214, 0.14);
+  outline: none;
+}
+
+.card-action {
+  display: block;
+  margin-top: 14px;
+  color: var(--accent);
+  font-size: 12px;
+  font-weight: 800;
+}
+
 .property-card {
   overflow: hidden;
   background: var(--card);
