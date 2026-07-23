@@ -1,5 +1,10 @@
 const STORAGE_KEY = "futura-homes-ledger-v1";
-const currency = new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 });
+const currency = new Intl.NumberFormat("en-US", {
+  style: "currency",
+  currency: "XAF",
+  currencyDisplay: "code",
+  maximumFractionDigits: 0
+});
 
 const starterRecords = [
   { id: 1, tenant: "Amara K.", property: "Palm Residence · A2", amount: 1200, dueDate: "2026-07-05", paidDate: "2026-07-03" },
