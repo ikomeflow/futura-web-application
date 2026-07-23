@@ -116,7 +116,7 @@ form input:focus { border-color: var(--green); box-shadow: 0 0 0 3px var(--green
 
 .property-grid {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: 1fr;
   gap: 18px;
 }
 
@@ -226,29 +226,32 @@ form input:focus { border-color: var(--green); box-shadow: 0 0 0 3px var(--green
   font-size: 11px;
 }
 
-.tenant-activity {
-  display: grid;
-  gap: 10px;
+.property-ledger-wrap {
+  overflow-x: auto;
+  border: 1px solid var(--line);
+  border-radius: 12px;
 }
 
-.tenant-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 14px;
-  padding-top: 10px;
-  border-top: 1px solid var(--line);
+.property-ledger {
+  width: 100%;
+  min-width: 720px;
+  border-collapse: collapse;
 }
 
-.tenant-row:first-child {
-  padding-top: 0;
-  border-top: 0;
-}
-
-.tenant-row small {
-  display: block;
-  margin-top: 3px;
+.property-ledger th {
+  padding: 11px 14px;
   color: var(--muted);
+  background: #f5f9ff;
+  font-size: 11px;
+  text-align: left;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.property-ledger td {
+  padding: 13px 14px;
+  border-top: 1px solid var(--line);
+  font-size: 13px;
 }
 
 @media (max-width: 980px) {

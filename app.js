@@ -25,11 +25,9 @@ const starterRecords = [
 ];
 
 let records = loadRecords();
-const paymentTable = document.querySelector("#paymentTable");
 const summaryCards = document.querySelector("#summaryCards");
 const dialog = document.querySelector("#paymentDialog");
 const form = document.querySelector("#paymentForm");
-const searchInput = document.querySelector("#searchInput");
 const propertyGrid = document.querySelector("#propertyGrid");
 const overviewView = document.querySelector("#overviewView");
 const propertiesView = document.querySelector("#propertiesView");
@@ -101,7 +99,6 @@ function render() {
       </div>`).join("")
     : '<p class="empty">Everything is paid. Nice work.</p>';
 
-  renderTable(searchInput.value);
   renderProperties();
 }
 
@@ -112,14 +109,18 @@ function renderProperties() {
     const collected = tenants.filter(record => record.paidDate)
       .reduce((sum, record) => sum + record.amount, 0);
     const outstanding = expected - collected;
-    const activity = tenants.map(record => {
+    const ledgerRows = tenants.map(record => {
       const unit = record.property.split(" · ")[1] || "Unit";
       const status = getStatus(record);
-      return `<div class="tenant-row">
-        <div><strong>${record.tenant}</strong><small>${unit} · ${currency.format(record.amount)}</small></div>
-        <span class="status ${status}">${status}</span>
-      </div>`;
-    }).join("") || '<p class="empty">No tenant activity yet.</p>';
+      return `<tr>
+        <td><strong>${record.tenant}</strong></td>
+        <td>${unit}</td>
+        <td>${currency.format(record.amount)}</td>
+        <td>${formatDate(record.dueDate)}</td>
+        <td>${formatDate(record.paidDate)}</td>
+        <td><span class="status ${status}">${status}</span></td>
+      </tr>`;
+    }).join("") || '<tr><td colspan="6" class="empty">No payment activity yet.</td></tr>';
 
     return `<article class="property-card" tabindex="0">
       <div class="property-card-header">
@@ -132,29 +133,25 @@ function renderProperties() {
           <div class="property-stat"><strong>${currency.format(collected)}</strong><span>Collected</span></div>
           <div class="property-stat"><strong>${currency.format(outstanding)}</strong><span>Outstanding</span></div>
         </div>
-        <h3>Tenant activity</h3>
-        <div class="tenant-activity">${activity}</div>
+        <h3>Payment ledger</h3>
+        <div class="property-ledger-wrap">
+          <table class="property-ledger">
+            <thead>
+              <tr>
+                <th>Tenant</th>
+                <th>Unit</th>
+                <th>Rent</th>
+                <th>Due date</th>
+                <th>Paid on</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>${ledgerRows}</tbody>
+          </table>
+        </div>
       </div>
     </article>`;
   }).join("");
-}
-
-function renderTable(query = "") {
-  const normalized = query.trim().toLowerCase();
-  const filtered = records.filter(record =>
-    `${record.tenant} ${record.property}`.toLowerCase().includes(normalized)
-  );
-  paymentTable.innerHTML = filtered.map(record => {
-    const status = getStatus(record);
-    return `<tr>
-      <td><strong>${record.tenant}</strong><small>Tenant</small></td>
-      <td>${record.property}</td>
-      <td>${currency.format(record.amount)}</td>
-      <td>${formatDate(record.dueDate)}</td>
-      <td>${formatDate(record.paidDate)}</td>
-      <td><span class="status ${status}">${status}</span></td>
-    </tr>`;
-  }).join("") || '<tr><td colspan="6" class="empty">No matching records found.</td></tr>';
 }
 
 function showView(view) {
@@ -170,7 +167,6 @@ document.querySelector("#addPropertyPaymentButton").addEventListener("click", ()
 overviewNav.addEventListener("click", () => showView("overview"));
 propertiesNav.addEventListener("click", () => showView("properties"));
 document.querySelector("#closeDialog").addEventListener("click", () => dialog.close());
-searchInput.addEventListener("input", event => renderTable(event.target.value));
 dialog.addEventListener("click", event => {
   if (event.target === dialog) dialog.close();
 });
