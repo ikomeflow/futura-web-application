@@ -1,4 +1,4 @@
-# Futura Homes
+# Futura Group
 
 A simple real-estate rent tracker for properties, tenants, rent amounts, due dates, and payment dates.
 
