@@ -91,7 +91,7 @@ function render() {
       ${index === 0 ? '<span class="card-action">View houses →</span>' : ""}
     </${index === 0 ? "button" : "article"}>`).join("");
 
-  document.querySelector(".summary-card-link").addEventListener("click", () => showView("properties"));
+  document.querySelector(".summary-card-link").addEventListener("click", () => navigateTo("properties"));
 
   document.querySelector("#collectionRate").textContent = `${rate}% collected`;
   document.querySelector("#collectionProgress").style.width = `${rate}%`;
@@ -236,19 +236,40 @@ function showView(view) {
   });
 }
 
+function currentViewFromUrl() {
+  const requested = window.location.hash.replace("#", "");
+  return ["overview", "properties", "tenants", "payments"].includes(requested)
+    ? requested
+    : "overview";
+}
+
+function navigateTo(view) {
+  if (currentViewFromUrl() === view) {
+    showView(view);
+    return;
+  }
+  window.history.pushState({ view }, "", `#${view}`);
+  showView(view);
+  window.scrollTo({ top: 0, behavior: "smooth" });
+}
+
 document.querySelector("#addPaymentButton").addEventListener("click", () => dialog.showModal());
 document.querySelector("#addPropertyPaymentButton").addEventListener("click", () => dialog.showModal());
 document.querySelector("#addTenantPaymentButton").addEventListener("click", () => dialog.showModal());
 document.querySelector("#addLedgerPaymentButton").addEventListener("click", () => dialog.showModal());
-overviewNav.addEventListener("click", () => showView("overview"));
-propertiesNav.addEventListener("click", () => showView("properties"));
-tenantsNav.addEventListener("click", () => showView("tenants"));
-paymentsNav.addEventListener("click", () => showView("payments"));
-document.querySelector("#openTenantsButton").addEventListener("click", () => showView("tenants"));
-document.querySelector("#openPaymentsButton").addEventListener("click", () => showView("payments"));
+overviewNav.addEventListener("click", () => navigateTo("overview"));
+propertiesNav.addEventListener("click", () => navigateTo("properties"));
+tenantsNav.addEventListener("click", () => navigateTo("tenants"));
+paymentsNav.addEventListener("click", () => navigateTo("payments"));
+document.querySelector("#openTenantsButton").addEventListener("click", () => navigateTo("tenants"));
+document.querySelector("#openPaymentsButton").addEventListener("click", () => navigateTo("payments"));
 tenantSearch.addEventListener("input", event => renderTenants(event.target.value));
 paymentSearch.addEventListener("input", event => renderPayments(event.target.value, paymentStatusFilter.value));
 paymentStatusFilter.addEventListener("change", event => renderPayments(paymentSearch.value, event.target.value));
+window.addEventListener("popstate", () => {
+  showView(currentViewFromUrl());
+  window.scrollTo({ top: 0 });
+});
 document.querySelector("#closeDialog").addEventListener("click", () => dialog.close());
 dialog.addEventListener("click", event => {
   if (event.target === dialog) dialog.close();
@@ -271,3 +292,5 @@ form.addEventListener("submit", event => {
 });
 
 render();
+window.history.replaceState({ view: currentViewFromUrl() }, "", window.location.href);
+showView(currentViewFromUrl());
