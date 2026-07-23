@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="description" content="Futura Group rent and property tracker">
   <title>Futura Group</title>
-  <link rel="stylesheet" href="styles.css?v=management-pages-v1">
+  <link rel="stylesheet" href="styles.css?v=visible-management-v1">
 </head>
 <body>
   <div class="app-shell">
@@ -16,8 +16,8 @@
       <nav aria-label="Main navigation">
         <button id="overviewNav" class="nav-item active" type="button">Overview</button>
         <button id="propertiesNav" class="nav-item" type="button">Properties</button>
-        <button id="tenantsNav" class="nav-item" type="button">Tenants</button>
-        <button id="paymentsNav" class="nav-item" type="button">Payments</button>
+        <button id="tenantsNav" class="nav-item" type="button"><span>Tenants</span><span class="new-badge">NEW</span></button>
+        <button id="paymentsNav" class="nav-item" type="button"><span>Payments</span><span class="new-badge">NEW</span></button>
       </nav>
       <div class="sidebar-note">
         <strong>Local & private</strong>
@@ -45,6 +45,29 @@
           <button id="addPaymentButton" class="primary-button" type="button">+ Record payment</button>
         </div>
       </header>
+
+      <section class="management-launcher" aria-labelledby="managementToolsTitle">
+        <div class="management-intro">
+          <span class="feature-pill">NEW</span>
+          <div>
+            <p class="eyebrow">MANAGEMENT TOOLS</p>
+            <h2 id="managementToolsTitle">Manage tenants and payments</h2>
+            <p>Use these new tools to search tenants and track paid or overdue rent.</p>
+          </div>
+        </div>
+        <div class="management-actions">
+          <button id="openTenantsButton" class="management-action" type="button">
+            <span class="management-icon" aria-hidden="true">👥</span>
+            <span><strong>View tenants</strong><small>Search all occupants</small></span>
+            <span aria-hidden="true">→</span>
+          </button>
+          <button id="openPaymentsButton" class="management-action" type="button">
+            <span class="management-icon" aria-hidden="true">₣</span>
+            <span><strong>View payments</strong><small>Track paid and overdue rent</small></span>
+            <span aria-hidden="true">→</span>
+          </button>
+        </div>
+      </section>
 
       <section id="summaryCards" class="summary-grid" aria-label="Portfolio summary"></section>
 
@@ -210,6 +233,6 @@
     </form>
   </dialog>
 
-  <script src="app.js?v=management-pages-v1"></script>
+  <script src="app.js?v=visible-management-v1"></script>
 </body>
 </html>
