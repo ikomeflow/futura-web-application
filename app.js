@@ -1,4 +1,4 @@
-const STORAGE_KEY = "futura-homes-ledger-v1";
+const STORAGE_KEY = "futura-group-ledger-v2";
 const currency = new Intl.NumberFormat("en-US", {
   style: "currency",
   currency: "XAF",
@@ -6,13 +6,22 @@ const currency = new Intl.NumberFormat("en-US", {
   maximumFractionDigits: 0
 });
 
+const propertyPortfolio = [
+  { name: "Executive Hotel", type: "Hotel property" },
+  { name: "Bakweri Town House", type: "Town house" },
+  { name: "Orange Entrance Likomba Tiko", type: "Residential building" },
+  { name: "Bimbia Bonabile", type: "Residential building" }
+];
+
 const starterRecords = [
-  { id: 1, tenant: "Amara K.", property: "Palm Residence · A2", amount: 1200, dueDate: "2026-07-05", paidDate: "2026-07-03" },
-  { id: 2, tenant: "Daniel T.", property: "Lakeview Court · B1", amount: 950, dueDate: "2026-07-05", paidDate: "2026-07-05" },
-  { id: 3, tenant: "Esther N.", property: "Palm Residence · A4", amount: 1200, dueDate: "2026-07-05", paidDate: "" },
-  { id: 4, tenant: "Joel M.", property: "Garden Terraces · C3", amount: 800, dueDate: "2026-07-10", paidDate: "2026-07-09" },
-  { id: 5, tenant: "Mireille E.", property: "Lakeview Court · B4", amount: 950, dueDate: "2026-07-10", paidDate: "" },
-  { id: 6, tenant: "Patrick S.", property: "Garden Terraces · C1", amount: 800, dueDate: "2026-07-15", paidDate: "2026-07-14" }
+  { id: 1, tenant: "Amara K.", property: "Executive Hotel · Suite 01", amount: 225000, dueDate: "2026-07-05", paidDate: "2026-07-03" },
+  { id: 2, tenant: "Daniel T.", property: "Executive Hotel · Suite 02", amount: 225000, dueDate: "2026-07-05", paidDate: "" },
+  { id: 3, tenant: "Esther N.", property: "Bakweri Town House · Unit A", amount: 150000, dueDate: "2026-07-05", paidDate: "2026-07-05" },
+  { id: 4, tenant: "Joel M.", property: "Bakweri Town House · Unit B", amount: 150000, dueDate: "2026-07-10", paidDate: "2026-07-09" },
+  { id: 5, tenant: "Mireille E.", property: "Orange Entrance Likomba Tiko · Unit 01", amount: 100000, dueDate: "2026-07-10", paidDate: "" },
+  { id: 6, tenant: "Patrick S.", property: "Orange Entrance Likomba Tiko · Unit 02", amount: 100000, dueDate: "2026-07-15", paidDate: "2026-07-14" },
+  { id: 7, tenant: "Carine B.", property: "Bimbia Bonabile · Unit 01", amount: 120000, dueDate: "2026-07-10", paidDate: "2026-07-08" },
+  { id: 8, tenant: "Samuel L.", property: "Bimbia Bonabile · Unit 02", amount: 120000, dueDate: "2026-07-15", paidDate: "" }
 ];
 
 let records = loadRecords();
@@ -21,6 +30,11 @@ const summaryCards = document.querySelector("#summaryCards");
 const dialog = document.querySelector("#paymentDialog");
 const form = document.querySelector("#paymentForm");
 const searchInput = document.querySelector("#searchInput");
+const propertyGrid = document.querySelector("#propertyGrid");
+const overviewView = document.querySelector("#overviewView");
+const propertiesView = document.querySelector("#propertiesView");
+const overviewNav = document.querySelector("#overviewNav");
+const propertiesNav = document.querySelector("#propertiesNav");
 
 function loadRecords() {
   try {
@@ -39,6 +53,10 @@ function getStatus(record) {
   return new Date(`${record.dueDate}T23:59:59`) < new Date() ? "overdue" : "due";
 }
 
+function buildingName(record) {
+  return record.property.split(" · ")[0];
+}
+
 function formatDate(value) {
   if (!value) return "—";
   return new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", year: "numeric" })
@@ -51,11 +69,10 @@ function render() {
   const totalRent = records.reduce((sum, record) => sum + record.amount, 0);
   const collected = paid.reduce((sum, record) => sum + record.amount, 0);
   const outstandingTotal = totalRent - collected;
-  const properties = new Set(records.map(record => record.property.split(" · ")[0])).size;
   const rate = totalRent ? Math.round((collected / totalRent) * 100) : 0;
 
   summaryCards.innerHTML = [
-    ["Properties", properties, `${records.length} occupied units`],
+    ["Properties", propertyPortfolio.length, `${records.length} occupied units`],
     ["Monthly rent", currency.format(totalRent), "Expected this month"],
     ["Collected", currency.format(collected), `${paid.length} payments received`],
     ["Outstanding", currency.format(outstandingTotal), `${outstanding.length} payments pending`]
@@ -80,6 +97,41 @@ function render() {
     : '<p class="empty">Everything is paid. Nice work.</p>';
 
   renderTable(searchInput.value);
+  renderProperties();
+}
+
+function renderProperties() {
+  propertyGrid.innerHTML = propertyPortfolio.map(property => {
+    const tenants = records.filter(record => buildingName(record) === property.name);
+    const expected = tenants.reduce((sum, record) => sum + record.amount, 0);
+    const collected = tenants.filter(record => record.paidDate)
+      .reduce((sum, record) => sum + record.amount, 0);
+    const outstanding = expected - collected;
+    const activity = tenants.map(record => {
+      const unit = record.property.split(" · ")[1] || "Unit";
+      const status = getStatus(record);
+      return `<div class="tenant-row">
+        <div><strong>${record.tenant}</strong><small>${unit} · ${currency.format(record.amount)}</small></div>
+        <span class="status ${status}">${status}</span>
+      </div>`;
+    }).join("") || '<p class="empty">No tenant activity yet.</p>';
+
+    return `<article class="property-card" tabindex="0">
+      <div class="property-card-header">
+        <div><p class="eyebrow">${property.type}</p><h2>${property.name}</h2></div>
+        <div class="property-price">${currency.format(expected)}<span>monthly building rent</span></div>
+      </div>
+      <div class="property-card-body">
+        <div class="property-stats">
+          <div class="property-stat"><strong>${tenants.length}</strong><span>Occupied units</span></div>
+          <div class="property-stat"><strong>${currency.format(collected)}</strong><span>Collected</span></div>
+          <div class="property-stat"><strong>${currency.format(outstanding)}</strong><span>Outstanding</span></div>
+        </div>
+        <h3>Tenant activity</h3>
+        <div class="tenant-activity">${activity}</div>
+      </div>
+    </article>`;
+  }).join("");
 }
 
 function renderTable(query = "") {
@@ -100,7 +152,18 @@ function renderTable(query = "") {
   }).join("") || '<tr><td colspan="6" class="empty">No matching records found.</td></tr>';
 }
 
+function showView(view) {
+  const showProperties = view === "properties";
+  overviewView.hidden = showProperties;
+  propertiesView.hidden = !showProperties;
+  overviewNav.classList.toggle("active", !showProperties);
+  propertiesNav.classList.toggle("active", showProperties);
+}
+
 document.querySelector("#addPaymentButton").addEventListener("click", () => dialog.showModal());
+document.querySelector("#addPropertyPaymentButton").addEventListener("click", () => dialog.showModal());
+overviewNav.addEventListener("click", () => showView("overview"));
+propertiesNav.addEventListener("click", () => showView("properties"));
 document.querySelector("#closeDialog").addEventListener("click", () => dialog.close());
 searchInput.addEventListener("input", event => renderTable(event.target.value));
 dialog.addEventListener("click", event => {

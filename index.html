@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="description" content="Futura Group rent and property tracker">
   <title>Futura Group</title>
-  <link rel="stylesheet" href="styles.css?v=official-blue">
+  <link rel="stylesheet" href="styles.css?v=properties-v1">
 </head>
 <body>
   <div class="app-shell">
@@ -14,8 +14,8 @@
         <img class="brand-logo" src="futura-group-logo.jpg" alt="Futura Group">
       </a>
       <nav aria-label="Main navigation">
-        <button class="nav-item active" type="button">Overview</button>
-        <button class="nav-item" type="button">Properties</button>
+        <button id="overviewNav" class="nav-item active" type="button">Overview</button>
+        <button id="propertiesNav" class="nav-item" type="button">Properties</button>
         <button class="nav-item" type="button">Tenants</button>
         <button class="nav-item" type="button">Payments</button>
       </nav>
@@ -26,6 +26,7 @@
     </aside>
 
     <main>
+      <div id="overviewView" class="page-view">
       <header class="topbar">
         <div>
           <p class="eyebrow">PROPERTY PORTFOLIO</p>
@@ -91,6 +92,19 @@
           </table>
         </div>
       </section>
+      </div>
+
+      <section id="propertiesView" class="page-view" hidden>
+        <header class="topbar page-header">
+          <div>
+            <p class="eyebrow">PROPERTY DIRECTORY</p>
+            <h1>Our properties</h1>
+            <p class="subtitle">Building prices and current tenant activity.</p>
+          </div>
+          <button id="addPropertyPaymentButton" class="primary-button" type="button">+ Record payment</button>
+        </header>
+        <div id="propertyGrid" class="property-grid" aria-label="Futura Group properties"></div>
+      </section>
     </main>
   </div>
 
@@ -115,6 +129,6 @@
     </form>
   </dialog>
 
-  <script src="app.js"></script>
+  <script src="app.js?v=properties-v1"></script>
 </body>
 </html>
