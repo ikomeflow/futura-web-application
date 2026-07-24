@@ -1,20 +1,28 @@
-# Futura Group
+# Futura Group Secure Portal
 
-A simple real-estate rent tracker for properties, tenants, rent amounts, due dates, and payment dates.
+A secure property and rent portal with separate administrator and customer access.
 
 ## Features
 
-- Portfolio overview and monthly collection rate
-- Paid, due, and overdue rent statuses
-- Search by tenant or property
-- Record new paid or unpaid rent entries
-- Responsive layout for desktop and mobile
-- Browser-based local storage (no server or account required)
+- Email/password login and password reset
+- Administrator access to all customer and payment records
+- Customer access restricted to the signed-in customer's own profile and rent history
+- Database-enforced Row Level Security
+- Portfolio, tenant, property, and payment dashboards
+- Responsive desktop and mobile layouts
 
-## Run the app
+## Secure setup
 
-Open `index.html` in a modern web browser. Records are saved in that browser on that device.
+1. Create a Supabase project.
+2. Open the Supabase SQL Editor and run `supabase-schema.sql`.
+3. In Authentication, create the first user.
+4. Promote that user to administrator using the final SQL statement in `supabase-schema.sql`.
+5. Copy the project URL and publishable key into `config.js`.
+6. Add the deployed website address to Supabase Authentication URL Configuration.
+7. Create customer users in Authentication. Each customer automatically receives a restricted `customer` profile.
 
-## Important
+Only the publishable browser key belongs in `config.js`. Never place a Supabase secret or service-role key in this repository.
 
-This is a starter application. For a multi-user production system, add secure sign-in, a hosted database, backups, permissions, and audit history.
+## Run locally
+
+Serve the folder through a local web server. Authentication redirects do not work reliably when `index.html` is opened directly as a `file://` page.

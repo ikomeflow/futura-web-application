@@ -38,7 +38,32 @@
       </div>
     </div>
   </div>
-  <div class="app-shell">
+  <main id="authView" class="auth-view">
+    <section class="auth-card" aria-labelledby="authTitle">
+      <img class="auth-logo" src="futura-group-logo.jpg" alt="Futura Group">
+      <p class="eyebrow">SECURE PORTAL</p>
+      <h1 id="authTitle">Welcome back</h1>
+      <p id="authIntro" class="subtitle">Sign in to view your Futura Group account.</p>
+      <form id="loginForm" class="auth-form">
+        <label>Email address<input id="loginEmail" name="email" type="email" autocomplete="email" required></label>
+        <label>Password<input id="loginPassword" name="password" type="password" autocomplete="current-password" required></label>
+        <button class="primary-button full-width" type="submit">Sign in</button>
+      </form>
+      <form id="recoveryForm" class="auth-form" hidden>
+        <label>New password<input id="newPassword" name="password" type="password" autocomplete="new-password" minlength="8" required></label>
+        <label>Confirm new password<input id="confirmPassword" name="confirmPassword" type="password" autocomplete="new-password" minlength="8" required></label>
+        <button class="primary-button full-width" type="submit">Update password</button>
+      </form>
+      <button id="forgotPasswordButton" class="text-button" type="button">Forgot your password?</button>
+      <p id="authMessage" class="auth-message" role="status" aria-live="polite"></p>
+      <div id="setupNotice" class="setup-notice" hidden>
+        <strong>Secure portal setup required</strong>
+        <p>Add the Supabase project URL and public key in <code>config.js</code>.</p>
+      </div>
+    </section>
+  </main>
+
+  <div id="appShell" class="app-shell" hidden>
     <aside class="sidebar">
       <a class="brand" href="#">
         <img class="brand-logo" src="futura-group-logo.jpg" alt="Futura Group">
@@ -64,6 +89,12 @@
           <small id="themeHint">Switch to dark</small>
         </span>
       </button>
+      <div class="account-card">
+        <span id="accountRole" class="role-badge">Account</span>
+        <strong id="accountName">Futura user</strong>
+        <small id="accountEmail"></small>
+        <button id="signOutButton" class="sidebar-signout" type="button">Sign out</button>
+      </div>
       <div class="sidebar-note">
         <strong>Local & private</strong>
         <p>Your records stay in this browser.</p>
@@ -71,6 +102,46 @@
     </aside>
 
     <main>
+      <section id="customerView" class="page-view customer-view" hidden>
+        <header class="topbar page-header">
+          <div>
+            <p class="eyebrow">MY FUTURA ACCOUNT</p>
+            <h1 id="customerWelcome">Welcome</h1>
+            <p class="subtitle">Your private tenancy and payment information.</p>
+          </div>
+        </header>
+        <section id="customerSummary" class="mini-summary-grid" aria-label="My account summary"></section>
+        <section class="panel customer-profile-panel">
+          <div>
+            <p class="eyebrow">PERSONAL DETAILS</p>
+            <h2>My profile</h2>
+          </div>
+          <dl id="customerProfile" class="profile-details"></dl>
+        </section>
+        <section class="panel directory-panel customer-ledger">
+          <div class="directory-toolbar">
+            <div>
+              <p class="eyebrow">PAYMENT HISTORY</p>
+              <h2>My rent records</h2>
+            </div>
+          </div>
+          <div class="table-wrap">
+            <table class="management-table">
+              <thead>
+                <tr>
+                  <th>Property</th>
+                  <th>Rent</th>
+                  <th>Due date</th>
+                  <th>Paid on</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody id="customerPaymentTable"></tbody>
+            </table>
+          </div>
+        </section>
+      </section>
+
       <div id="overviewView" class="page-view">
       <header class="topbar">
         <div>
@@ -266,7 +337,11 @@
         </div>
         <button id="closeDialog" class="icon-button" type="button" aria-label="Close">×</button>
       </div>
-      <label>Tenant name<input name="tenant" required placeholder="e.g. Sarah N."></label>
+      <label>Customer
+        <select id="customerSelect" name="userId" required>
+          <option value="">Select a customer</option>
+        </select>
+      </label>
       <label>Property<input name="property" required placeholder="e.g. Garden Court · A4"></label>
       <div class="form-row">
         <label>Rent amount<input name="amount" required min="0" step="1" type="number"></label>
@@ -278,6 +353,8 @@
     </form>
   </dialog>
 
-  <script src="app.js?v=night-default-v1"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="config.js?v=secure-portal-v1"></script>
+  <script src="app.js?v=secure-portal-v1"></script>
 </body>
 </html>

@@ -1,4 +1,3 @@
-const STORAGE_KEY = "futura-group-ledger-v2";
 const THEME_KEY = "futura-group-theme";
 const currency = new Intl.NumberFormat("en-US", {
   style: "currency",
@@ -14,22 +13,26 @@ const propertyPortfolio = [
   { name: "Bimbia Bonabile", type: "Residential building" }
 ];
 
-const starterRecords = [
-  { id: 1, tenant: "Amara K.", property: "Executive Hotel · Suite 01", amount: 225000, dueDate: "2026-07-05", paidDate: "2026-07-03" },
-  { id: 2, tenant: "Daniel T.", property: "Executive Hotel · Suite 02", amount: 225000, dueDate: "2026-07-05", paidDate: "" },
-  { id: 3, tenant: "Esther N.", property: "Bakweri Town House · Unit A", amount: 150000, dueDate: "2026-07-05", paidDate: "2026-07-05" },
-  { id: 4, tenant: "Joel M.", property: "Bakweri Town House · Unit B", amount: 150000, dueDate: "2026-07-10", paidDate: "2026-07-09" },
-  { id: 5, tenant: "Mireille E.", property: "Orange Entrance Likomba Tiko · Unit 01", amount: 100000, dueDate: "2026-07-10", paidDate: "" },
-  { id: 6, tenant: "Patrick S.", property: "Orange Entrance Likomba Tiko · Unit 02", amount: 100000, dueDate: "2026-07-15", paidDate: "2026-07-14" },
-  { id: 7, tenant: "Carine B.", property: "Bimbia Bonabile · Unit 01", amount: 120000, dueDate: "2026-07-10", paidDate: "2026-07-08" },
-  { id: 8, tenant: "Samuel L.", property: "Bimbia Bonabile · Unit 02", amount: 120000, dueDate: "2026-07-15", paidDate: "" }
-];
+let db = null;
+let currentUser = null;
+let currentProfile = null;
+let customerProfiles = [];
+let records = [];
+let recoveryMode = false;
 
-let records = loadRecords();
+const authView = document.querySelector("#authView");
+const appShell = document.querySelector("#appShell");
+const loginForm = document.querySelector("#loginForm");
+const recoveryForm = document.querySelector("#recoveryForm");
+const forgotPasswordButton = document.querySelector("#forgotPasswordButton");
+const authMessage = document.querySelector("#authMessage");
+const setupNotice = document.querySelector("#setupNotice");
 const summaryCards = document.querySelector("#summaryCards");
 const dialog = document.querySelector("#paymentDialog");
 const form = document.querySelector("#paymentForm");
+const customerSelect = document.querySelector("#customerSelect");
 const propertyGrid = document.querySelector("#propertyGrid");
+const customerView = document.querySelector("#customerView");
 const overviewView = document.querySelector("#overviewView");
 const propertiesView = document.querySelector("#propertiesView");
 const tenantsView = document.querySelector("#tenantsView");
@@ -46,6 +49,15 @@ const themeIcon = document.querySelector("#themeIcon");
 const themeLabel = document.querySelector("#themeLabel");
 const themeHint = document.querySelector("#themeHint");
 
+function escapeHtml(value) {
+  return String(value ?? "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
+}
+
 function applyTheme(theme) {
   const isDark = theme === "dark";
   document.documentElement.dataset.theme = isDark ? "dark" : "light";
@@ -58,23 +70,15 @@ function applyTheme(theme) {
 
 function loadTheme() {
   try {
-    const savedTheme = localStorage.getItem(THEME_KEY);
-    return savedTheme === "light" ? "light" : "dark";
+    return localStorage.getItem(THEME_KEY) === "light" ? "light" : "dark";
   } catch {
     return "dark";
   }
 }
 
-function loadRecords() {
-  try {
-    return JSON.parse(localStorage.getItem(STORAGE_KEY)) || starterRecords;
-  } catch {
-    return starterRecords;
-  }
-}
-
-function saveRecords() {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(records));
+function setAuthMessage(message = "", type = "") {
+  authMessage.textContent = message;
+  authMessage.className = `auth-message${type ? ` ${type}` : ""}`;
 }
 
 function getStatus(record) {
@@ -92,7 +96,112 @@ function formatDate(value) {
     .format(new Date(`${value}T12:00:00`));
 }
 
-function render() {
+function mapRecord(row) {
+  return {
+    id: row.id,
+    userId: row.user_id,
+    tenant: row.tenant_name,
+    property: row.property,
+    amount: Number(row.amount),
+    dueDate: row.due_date,
+    paidDate: row.paid_date || ""
+  };
+}
+
+function showAuth() {
+  authView.hidden = false;
+  appShell.hidden = true;
+  document.body.classList.remove("customer-mode");
+}
+
+function showApp(role) {
+  authView.hidden = true;
+  appShell.hidden = false;
+  const isCustomer = role !== "admin";
+  appShell.classList.toggle("customer-mode", isCustomer);
+  document.body.classList.toggle("customer-mode", isCustomer);
+}
+
+function setAccountDetails() {
+  document.querySelector("#accountRole").textContent = currentProfile.role;
+  document.querySelector("#accountName").textContent = currentProfile.full_name || "Futura user";
+  document.querySelector("#accountEmail").textContent = currentProfile.email || currentUser.email || "";
+}
+
+async function loadProfile() {
+  const { data, error } = await db
+    .from("profiles")
+    .select("id, full_name, email, phone, role")
+    .eq("id", currentUser.id)
+    .single();
+  if (error) throw error;
+  currentProfile = data;
+}
+
+async function loadSecureData() {
+  if (currentProfile.role === "admin") {
+    const [recordsResult, profilesResult] = await Promise.all([
+      db.from("rent_records").select("*").order("due_date", { ascending: false }),
+      db.from("profiles").select("id, full_name, email, phone, role").order("full_name")
+    ]);
+    if (recordsResult.error) throw recordsResult.error;
+    if (profilesResult.error) throw profilesResult.error;
+    records = (recordsResult.data || []).map(mapRecord);
+    customerProfiles = (profilesResult.data || []).filter(profile => profile.role === "customer");
+    populateCustomerSelect();
+    renderAdmin();
+  } else {
+    const { data, error } = await db
+      .from("rent_records")
+      .select("*")
+      .eq("user_id", currentUser.id)
+      .order("due_date", { ascending: false });
+    if (error) throw error;
+    records = (data || []).map(mapRecord);
+    customerProfiles = [];
+    renderCustomer();
+  }
+}
+
+async function handleSession(session) {
+  if (recoveryMode) return;
+  if (!session?.user) {
+    currentUser = null;
+    currentProfile = null;
+    records = [];
+    showAuth();
+    return;
+  }
+
+  currentUser = session.user;
+  setAuthMessage("Loading your secure account…");
+  try {
+    await loadProfile();
+    await loadSecureData();
+    setAccountDetails();
+    showApp(currentProfile.role);
+    if (currentProfile.role === "admin") {
+      showView(currentViewFromUrl());
+    } else {
+      showView("customer");
+    }
+    setAuthMessage("");
+  } catch (error) {
+    showAuth();
+    setAuthMessage(error.message || "Your account could not be loaded.", "error");
+  }
+}
+
+function populateCustomerSelect() {
+  customerSelect.innerHTML = [
+    '<option value="">Select a customer</option>',
+    ...customerProfiles.map(profile =>
+      `<option value="${escapeHtml(profile.id)}">${escapeHtml(profile.full_name || profile.email)} · ${escapeHtml(profile.email)}</option>`
+    )
+  ].join("");
+}
+
+function renderAdmin() {
   const paid = records.filter(record => record.paidDate);
   const outstanding = records.filter(record => !record.paidDate);
   const totalRent = records.reduce((sum, record) => sum + record.amount, 0);
@@ -109,14 +218,13 @@ function render() {
     <${index === 0 ? "button" : "article"}
       class="summary-card${index === 0 ? " summary-card-link" : ""}"
       ${index === 0 ? 'type="button" aria-label="Open properties"' : ""}>
-      <span class="label">${label}</span>
-      <div class="value">${value}</div>
-      <span class="detail">${detail}</span>
+      <span class="label">${escapeHtml(label)}</span>
+      <div class="value">${escapeHtml(value)}</div>
+      <span class="detail">${escapeHtml(detail)}</span>
       ${index === 0 ? '<span class="card-action">View houses →</span>' : ""}
     </${index === 0 ? "button" : "article"}>`).join("");
 
   document.querySelector(".summary-card-link").addEventListener("click", () => navigateTo("properties"));
-
   document.querySelector("#collectionRate").textContent = `${rate}% collected`;
   document.querySelector("#collectionProgress").style.width = `${rate}%`;
   document.querySelector("#collectedAmount").textContent = `${currency.format(collected)} received`;
@@ -125,8 +233,8 @@ function render() {
   document.querySelector("#overdueList").innerHTML = outstanding.length
     ? outstanding.slice(0, 3).map(record => `
       <div class="overdue-item">
-        <div><strong>${record.tenant}</strong><span>${record.property}</span></div>
-        <div class="amount">${currency.format(record.amount)}<span>Due ${formatDate(record.dueDate)}</span></div>
+        <div><strong>${escapeHtml(record.tenant)}</strong><span>${escapeHtml(record.property)}</span></div>
+        <div class="amount">${escapeHtml(currency.format(record.amount))}<span>Due ${escapeHtml(formatDate(record.dueDate))}</span></div>
       </div>`).join("")
     : '<p class="empty">Everything is paid. Nice work.</p>';
 
@@ -136,7 +244,13 @@ function render() {
 }
 
 function renderProperties() {
-  propertyGrid.innerHTML = propertyPortfolio.map(property => {
+  const knownNames = new Set(propertyPortfolio.map(property => property.name));
+  const dynamicProperties = records
+    .map(buildingName)
+    .filter(name => !knownNames.has(name))
+    .map(name => ({ name, type: "Property" }));
+
+  propertyGrid.innerHTML = [...propertyPortfolio, ...dynamicProperties].map(property => {
     const tenants = records.filter(record => buildingName(record) === property.name);
     const expected = tenants.reduce((sum, record) => sum + record.amount, 0);
     const collected = tenants.filter(record => record.paidDate)
@@ -146,39 +260,30 @@ function renderProperties() {
       const unit = record.property.split(" · ")[1] || "Unit";
       const status = getStatus(record);
       return `<tr>
-        <td><strong>${record.tenant}</strong></td>
-        <td>${unit}</td>
-        <td>${currency.format(record.amount)}</td>
-        <td>${formatDate(record.dueDate)}</td>
-        <td>${formatDate(record.paidDate)}</td>
+        <td><strong>${escapeHtml(record.tenant)}</strong></td>
+        <td>${escapeHtml(unit)}</td>
+        <td>${escapeHtml(currency.format(record.amount))}</td>
+        <td>${escapeHtml(formatDate(record.dueDate))}</td>
+        <td>${escapeHtml(formatDate(record.paidDate))}</td>
         <td><span class="status ${status}">${status}</span></td>
       </tr>`;
     }).join("") || '<tr><td colspan="6" class="empty">No payment activity yet.</td></tr>';
 
     return `<article class="property-card" tabindex="0">
       <div class="property-card-header">
-        <div><p class="eyebrow">${property.type}</p><h2>${property.name}</h2></div>
-        <div class="property-price">${currency.format(expected)}<span>monthly building rent</span></div>
+        <div><p class="eyebrow">${escapeHtml(property.type)}</p><h2>${escapeHtml(property.name)}</h2></div>
+        <div class="property-price">${escapeHtml(currency.format(expected))}<span>monthly building rent</span></div>
       </div>
       <div class="property-card-body">
         <div class="property-stats">
           <div class="property-stat"><strong>${tenants.length}</strong><span>Occupied units</span></div>
-          <div class="property-stat"><strong>${currency.format(collected)}</strong><span>Collected</span></div>
-          <div class="property-stat"><strong>${currency.format(outstanding)}</strong><span>Outstanding</span></div>
+          <div class="property-stat"><strong>${escapeHtml(currency.format(collected))}</strong><span>Collected</span></div>
+          <div class="property-stat"><strong>${escapeHtml(currency.format(outstanding))}</strong><span>Outstanding</span></div>
         </div>
         <h3>Payment ledger</h3>
         <div class="property-ledger-wrap">
           <table class="property-ledger">
-            <thead>
-              <tr>
-                <th>Tenant</th>
-                <th>Unit</th>
-                <th>Rent</th>
-                <th>Due date</th>
-                <th>Paid on</th>
-                <th>Status</th>
-              </tr>
-            </thead>
+            <thead><tr><th>Tenant</th><th>Unit</th><th>Rent</th><th>Due date</th><th>Paid on</th><th>Status</th></tr></thead>
             <tbody>${ledgerRows}</tbody>
           </table>
         </div>
@@ -193,35 +298,34 @@ function renderTenants(query = "") {
     `${record.tenant} ${record.property}`.toLowerCase().includes(normalized)
   );
   const paidCount = records.filter(record => getStatus(record) === "paid").length;
-  const pendingCount = records.length - paidCount;
 
   document.querySelector("#tenantSummary").innerHTML = [
-    ["Active tenants", records.length],
+    ["Customer accounts", customerProfiles.length],
     ["Rent up to date", paidCount],
-    ["Need attention", pendingCount]
+    ["Need attention", records.length - paidCount]
   ].map(([label, value]) => `
-    <article class="mini-summary-card"><span>${label}</span><strong>${value}</strong></article>
+    <article class="mini-summary-card"><span>${escapeHtml(label)}</span><strong>${escapeHtml(value)}</strong></article>
   `).join("");
 
   document.querySelector("#tenantTable").innerHTML = filtered.map(record => {
     const parts = record.property.split(" · ");
+    const profile = customerProfiles.find(item => item.id === record.userId);
     const status = getStatus(record);
     return `<tr>
-      <td><strong>${record.tenant}</strong></td>
-      <td>${parts[0]}</td>
-      <td>${parts[1] || "Unit"}</td>
-      <td>${currency.format(record.amount)}</td>
+      <td><strong>${escapeHtml(record.tenant)}</strong><small>${escapeHtml(profile?.email || "")}</small></td>
+      <td>${escapeHtml(parts[0])}</td>
+      <td>${escapeHtml(parts[1] || "Unit")}</td>
+      <td>${escapeHtml(currency.format(record.amount))}</td>
       <td><span class="status ${status}">${status}</span></td>
     </tr>`;
-  }).join("") || '<tr><td colspan="5" class="empty">No matching tenants found.</td></tr>';
+  }).join("") || '<tr><td colspan="5" class="empty">No matching customers found.</td></tr>';
 }
 
 function renderPayments(query = "", statusFilter = "all") {
   const normalized = query.trim().toLowerCase();
   const filtered = records.filter(record => {
     const matchesSearch = `${record.tenant} ${record.property}`.toLowerCase().includes(normalized);
-    const matchesStatus = statusFilter === "all" || getStatus(record) === statusFilter;
-    return matchesSearch && matchesStatus;
+    return matchesSearch && (statusFilter === "all" || getStatus(record) === statusFilter);
   });
   const collected = records.filter(record => record.paidDate)
     .reduce((sum, record) => sum + record.amount, 0);
@@ -233,24 +337,66 @@ function renderPayments(query = "", statusFilter = "all") {
     ["Collected", currency.format(collected)],
     ["Outstanding", currency.format(outstanding)]
   ].map(([label, value]) => `
-    <article class="mini-summary-card"><span>${label}</span><strong>${value}</strong></article>
+    <article class="mini-summary-card"><span>${escapeHtml(label)}</span><strong>${escapeHtml(value)}</strong></article>
   `).join("");
 
   document.querySelector("#allPaymentTable").innerHTML = filtered.map(record => {
     const status = getStatus(record);
     return `<tr>
-      <td><strong>${record.tenant}</strong></td>
-      <td>${record.property}</td>
-      <td>${currency.format(record.amount)}</td>
-      <td>${formatDate(record.dueDate)}</td>
-      <td>${formatDate(record.paidDate)}</td>
+      <td><strong>${escapeHtml(record.tenant)}</strong></td>
+      <td>${escapeHtml(record.property)}</td>
+      <td>${escapeHtml(currency.format(record.amount))}</td>
+      <td>${escapeHtml(formatDate(record.dueDate))}</td>
+      <td>${escapeHtml(formatDate(record.paidDate))}</td>
       <td><span class="status ${status}">${status}</span></td>
     </tr>`;
   }).join("") || '<tr><td colspan="6" class="empty">No matching payments found.</td></tr>';
 }
 
+function renderCustomer() {
+  const paid = records.filter(record => getStatus(record) === "paid");
+  const outstanding = records.filter(record => getStatus(record) !== "paid");
+  const outstandingAmount = outstanding.reduce((sum, record) => sum + record.amount, 0);
+  document.querySelector("#customerWelcome").textContent =
+    `Welcome, ${currentProfile.full_name || "customer"}`;
+  document.querySelector("#customerSummary").innerHTML = [
+    ["Payment records", records.length],
+    ["Paid", paid.length],
+    ["Outstanding", currency.format(outstandingAmount)]
+  ].map(([label, value]) => `
+    <article class="mini-summary-card"><span>${escapeHtml(label)}</span><strong>${escapeHtml(value)}</strong></article>
+  `).join("");
+
+  const latestProperty = records[0]?.property || "No property assigned";
+  document.querySelector("#customerProfile").innerHTML = [
+    ["Name", currentProfile.full_name || "—"],
+    ["Email", currentProfile.email || currentUser.email || "—"],
+    ["Phone", currentProfile.phone || "—"],
+    ["Property", latestProperty]
+  ].map(([label, value]) =>
+    `<div><dt>${escapeHtml(label)}</dt><dd>${escapeHtml(value)}</dd></div>`
+  ).join("");
+
+  document.querySelector("#customerPaymentTable").innerHTML = records.map(record => {
+    const status = getStatus(record);
+    return `<tr>
+      <td>${escapeHtml(record.property)}</td>
+      <td>${escapeHtml(currency.format(record.amount))}</td>
+      <td>${escapeHtml(formatDate(record.dueDate))}</td>
+      <td>${escapeHtml(formatDate(record.paidDate))}</td>
+      <td><span class="status ${status}">${status}</span></td>
+    </tr>`;
+  }).join("") || '<tr><td colspan="5" class="empty">No payment records are linked to this account yet.</td></tr>';
+}
+
 function showView(view) {
-  const views = { overview: overviewView, properties: propertiesView, tenants: tenantsView, payments: paymentsView };
+  const views = {
+    customer: customerView,
+    overview: overviewView,
+    properties: propertiesView,
+    tenants: tenantsView,
+    payments: paymentsView
+  };
   const navItems = { overview: overviewNav, properties: propertiesNav, tenants: tenantsNav, payments: paymentsNav };
   Object.entries(views).forEach(([name, element]) => {
     element.hidden = name !== view;
@@ -268,19 +414,72 @@ function currentViewFromUrl() {
 }
 
 function navigateTo(view) {
-  if (currentViewFromUrl() === view) {
-    showView(view);
-    return;
+  if (currentProfile?.role !== "admin") return;
+  if (currentViewFromUrl() !== view) {
+    window.history.pushState({ view }, "", `#${view}`);
   }
-  window.history.pushState({ view }, "", `#${view}`);
   showView(view);
   window.scrollTo({ top: 0, behavior: "smooth" });
 }
 
-document.querySelector("#addPaymentButton").addEventListener("click", () => dialog.showModal());
-document.querySelector("#addPropertyPaymentButton").addEventListener("click", () => dialog.showModal());
-document.querySelector("#addTenantPaymentButton").addEventListener("click", () => dialog.showModal());
-document.querySelector("#addLedgerPaymentButton").addEventListener("click", () => dialog.showModal());
+function openPaymentDialog() {
+  if (currentProfile?.role === "admin") dialog.showModal();
+}
+
+loginForm.addEventListener("submit", async event => {
+  event.preventDefault();
+  if (!db) return;
+  const data = new FormData(loginForm);
+  setAuthMessage("Signing in…");
+  const { error } = await db.auth.signInWithPassword({
+    email: data.get("email").trim(),
+    password: data.get("password")
+  });
+  if (error) setAuthMessage("The email or password is incorrect.", "error");
+});
+
+forgotPasswordButton.addEventListener("click", async () => {
+  if (!db) return;
+  const email = document.querySelector("#loginEmail").value.trim();
+  if (!email) {
+    setAuthMessage("Enter your email address first.", "error");
+    document.querySelector("#loginEmail").focus();
+    return;
+  }
+  const redirectTo = `${window.location.origin}${window.location.pathname}`;
+  const { error } = await db.auth.resetPasswordForEmail(email, { redirectTo });
+  setAuthMessage(
+    error ? error.message : "Check your email for a secure password-reset link.",
+    error ? "error" : "success"
+  );
+});
+
+recoveryForm.addEventListener("submit", async event => {
+  event.preventDefault();
+  const data = new FormData(recoveryForm);
+  if (data.get("password") !== data.get("confirmPassword")) {
+    setAuthMessage("The passwords do not match.", "error");
+    return;
+  }
+  const { error } = await db.auth.updateUser({ password: data.get("password") });
+  if (error) {
+    setAuthMessage(error.message, "error");
+    return;
+  }
+  recoveryForm.reset();
+  recoveryMode = false;
+  recoveryForm.hidden = true;
+  loginForm.hidden = false;
+  forgotPasswordButton.hidden = false;
+  setAuthMessage("Your password has been updated.", "success");
+});
+
+document.querySelector("#signOutButton").addEventListener("click", async () => {
+  if (db) await db.auth.signOut();
+});
+
+document.querySelectorAll("#addPaymentButton, #addPropertyPaymentButton, #addTenantPaymentButton, #addLedgerPaymentButton")
+  .forEach(button => button.addEventListener("click", openPaymentDialog));
 overviewNav.addEventListener("click", () => navigateTo("overview"));
 propertiesNav.addEventListener("click", () => navigateTo("properties"));
 tenantsNav.addEventListener("click", () => navigateTo("tenants"));
@@ -296,35 +495,91 @@ themeToggle.addEventListener("click", () => {
   try {
     localStorage.setItem(THEME_KEY, nextTheme);
   } catch {
-    // Theme still changes for this visit when browser storage is unavailable.
+    // The visual theme still changes when browser storage is unavailable.
   }
 });
 window.addEventListener("popstate", () => {
-  showView(currentViewFromUrl());
+  if (currentProfile?.role === "admin") showView(currentViewFromUrl());
   window.scrollTo({ top: 0 });
 });
 document.querySelector("#closeDialog").addEventListener("click", () => dialog.close());
 dialog.addEventListener("click", event => {
   if (event.target === dialog) dialog.close();
 });
-form.addEventListener("submit", event => {
+form.addEventListener("submit", async event => {
   event.preventDefault();
+  if (!db || currentProfile?.role !== "admin") return;
   const data = new FormData(form);
-  records.unshift({
-    id: Date.now(),
-    tenant: data.get("tenant").trim(),
+  const profile = customerProfiles.find(item => item.id === data.get("userId"));
+  if (!profile) {
+    setAuthMessage("Select a valid customer.", "error");
+    return;
+  }
+
+  const { error } = await db.from("rent_records").insert({
+    user_id: profile.id,
+    tenant_name: profile.full_name || profile.email,
     property: data.get("property").trim(),
     amount: Number(data.get("amount")),
-    dueDate: data.get("dueDate"),
-    paidDate: data.get("paidDate")
+    due_date: data.get("dueDate"),
+    paid_date: data.get("paidDate") || null
   });
-  saveRecords();
+  if (error) {
+    window.alert(error.message);
+    return;
+  }
   form.reset();
   dialog.close();
-  render();
+  await loadSecureData();
 });
 
-applyTheme(loadTheme());
-render();
-window.history.replaceState({ view: currentViewFromUrl() }, "", window.location.href);
-showView(currentViewFromUrl());
+async function initialize() {
+  applyTheme(loadTheme());
+  showAuth();
+  const config = window.FUTURA_CONFIG || {};
+  const configured = config.supabaseUrl?.startsWith("https://")
+    && !config.supabaseUrl.includes("YOUR_")
+    && config.supabasePublishableKey
+    && !config.supabasePublishableKey.includes("YOUR_")
+    && window.supabase?.createClient;
+
+  if (!configured) {
+    setupNotice.hidden = false;
+    loginForm.querySelectorAll("input, button").forEach(element => element.disabled = true);
+    forgotPasswordButton.disabled = true;
+    setAuthMessage("The secure database connection has not been configured yet.", "error");
+    return;
+  }
+
+  db = window.supabase.createClient(config.supabaseUrl, config.supabasePublishableKey, {
+    auth: {
+      autoRefreshToken: true,
+      persistSession: true,
+      detectSessionInUrl: true
+    }
+  });
+
+  db.auth.onAuthStateChange((event, session) => {
+    if (event === "PASSWORD_RECOVERY") {
+      recoveryMode = true;
+      showAuth();
+      loginForm.hidden = true;
+      recoveryForm.hidden = false;
+      forgotPasswordButton.hidden = true;
+      setAuthMessage("Choose a new password for your account.");
+      return;
+    }
+    if (event === "SIGNED_IN" || event === "SIGNED_OUT" || event === "USER_UPDATED") {
+      window.setTimeout(() => handleSession(session), 0);
+    }
+  });
+
+  const { data, error } = await db.auth.getSession();
+  if (error) {
+    setAuthMessage(error.message, "error");
+    return;
+  }
+  await handleSession(data.session);
+}
+
+initialize();
