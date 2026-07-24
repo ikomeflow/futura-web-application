@@ -58,9 +58,10 @@ function applyTheme(theme) {
 
 function loadTheme() {
   try {
-    return localStorage.getItem(THEME_KEY) === "dark" ? "dark" : "light";
+    const savedTheme = localStorage.getItem(THEME_KEY);
+    return savedTheme === "light" ? "light" : "dark";
   } catch {
-    return "light";
+    return "dark";
   }
 }
 
