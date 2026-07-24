@@ -1,4 +1,5 @@
 const STORAGE_KEY = "futura-group-ledger-v2";
+const THEME_KEY = "futura-group-theme";
 const currency = new Intl.NumberFormat("en-US", {
   style: "currency",
   currency: "XAF",
@@ -40,6 +41,28 @@ const paymentsNav = document.querySelector("#paymentsNav");
 const tenantSearch = document.querySelector("#tenantSearch");
 const paymentSearch = document.querySelector("#paymentSearch");
 const paymentStatusFilter = document.querySelector("#paymentStatusFilter");
+const themeToggle = document.querySelector("#themeToggle");
+const themeIcon = document.querySelector("#themeIcon");
+const themeLabel = document.querySelector("#themeLabel");
+const themeHint = document.querySelector("#themeHint");
+
+function applyTheme(theme) {
+  const isDark = theme === "dark";
+  document.documentElement.dataset.theme = isDark ? "dark" : "light";
+  themeToggle.setAttribute("aria-pressed", String(isDark));
+  themeToggle.setAttribute("aria-label", isDark ? "Switch to day mode" : "Switch to night mode");
+  themeIcon.textContent = isDark ? "☀" : "☾";
+  themeLabel.textContent = isDark ? "Day mode" : "Night mode";
+  themeHint.textContent = isDark ? "Switch to light" : "Switch to dark";
+}
+
+function loadTheme() {
+  try {
+    return localStorage.getItem(THEME_KEY) === "dark" ? "dark" : "light";
+  } catch {
+    return "light";
+  }
+}
 
 function loadRecords() {
   try {
@@ -266,6 +289,15 @@ document.querySelector("#openPaymentsButton").addEventListener("click", () => na
 tenantSearch.addEventListener("input", event => renderTenants(event.target.value));
 paymentSearch.addEventListener("input", event => renderPayments(event.target.value, paymentStatusFilter.value));
 paymentStatusFilter.addEventListener("change", event => renderPayments(paymentSearch.value, event.target.value));
+themeToggle.addEventListener("click", () => {
+  const nextTheme = document.documentElement.dataset.theme === "dark" ? "light" : "dark";
+  applyTheme(nextTheme);
+  try {
+    localStorage.setItem(THEME_KEY, nextTheme);
+  } catch {
+    // Theme still changes for this visit when browser storage is unavailable.
+  }
+});
 window.addEventListener("popstate", () => {
   showView(currentViewFromUrl());
   window.scrollTo({ top: 0 });
@@ -291,6 +323,7 @@ form.addEventListener("submit", event => {
   render();
 });
 
+applyTheme(loadTheme());
 render();
 window.history.replaceState({ view: currentViewFromUrl() }, "", window.location.href);
 showView(currentViewFromUrl());
