@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="description" content="Futura Group rent and property tracker">
   <title>Futura Group</title>
-  <link rel="stylesheet" href="styles.css?v=night-default-v1">
+  <link rel="stylesheet" href="styles.css?v=mobile-navigation-v1">
 </head>
 <body>
   <div class="advert-ticker" role="region" aria-label="Futura Group website advertisements">
@@ -31,10 +31,18 @@
         <img class="brand-logo" src="futura-group-logo.jpg" alt="Futura Group">
       </a>
       <nav aria-label="Main navigation">
-        <button id="overviewNav" class="nav-item active" type="button">Overview</button>
-        <button id="propertiesNav" class="nav-item" type="button">Properties</button>
-        <button id="tenantsNav" class="nav-item" type="button"><span>Tenants</span><span class="new-badge">NEW</span></button>
-        <button id="paymentsNav" class="nav-item" type="button"><span>Payments</span><span class="new-badge">NEW</span></button>
+        <button id="overviewNav" class="nav-item active" type="button">
+          <span class="nav-main"><span class="nav-icon" aria-hidden="true">⌂</span><span>Overview</span></span>
+        </button>
+        <button id="propertiesNav" class="nav-item" type="button">
+          <span class="nav-main"><span class="nav-icon" aria-hidden="true">▦</span><span>Properties</span></span>
+        </button>
+        <button id="tenantsNav" class="nav-item" type="button">
+          <span class="nav-main"><span class="nav-icon" aria-hidden="true">♟</span><span>Tenants</span></span><span class="new-badge">NEW</span>
+        </button>
+        <button id="paymentsNav" class="nav-item" type="button">
+          <span class="nav-main"><span class="nav-icon" aria-hidden="true">₣</span><span>Payments</span></span><span class="new-badge">NEW</span>
+        </button>
       </nav>
       <button id="themeToggle" class="theme-toggle" type="button" aria-pressed="false" aria-label="Switch to night mode">
         <span id="themeIcon" class="theme-icon" aria-hidden="true">☾</span>
