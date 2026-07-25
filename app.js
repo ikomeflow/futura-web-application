@@ -34,6 +34,8 @@ const setupNotice = document.querySelector("#setupNotice");
 const summaryCards = document.querySelector("#summaryCards");
 const dialog = document.querySelector("#paymentDialog");
 const form = document.querySelector("#paymentForm");
+const profileDialog = document.querySelector("#profileDialog");
+const profileForm = document.querySelector("#profileForm");
 const customerSelect = document.querySelector("#customerSelect");
 const propertyGrid = document.querySelector("#propertyGrid");
 const customerView = document.querySelector("#customerView");
@@ -391,8 +393,35 @@ function renderCustomer() {
   const paid = records.filter(record => getStatus(record) === "paid");
   const outstanding = records.filter(record => getStatus(record) !== "paid");
   const outstandingAmount = outstanding.reduce((sum, record) => sum + record.amount, 0);
+  const nextPayment = [...outstanding].sort((a, b) => a.dueDate.localeCompare(b.dueDate))[0];
+  const latestProperty = nextPayment?.property || records[0]?.property || "Not assigned yet";
+  const statusElement = document.querySelector("#customerAccountStatus");
   document.querySelector("#customerWelcome").textContent =
     `Welcome, ${currentProfile.full_name || "customer"}`;
+  document.querySelector("#customerGlanceProperty").textContent = latestProperty;
+
+  statusElement.className = "glance-status";
+  if (nextPayment) {
+    const status = getStatus(nextPayment);
+    statusElement.textContent = status === "overdue" ? "Payment needs attention" : "Payment coming up";
+    statusElement.classList.add("attention");
+    document.querySelector("#customerNextPayment").textContent =
+      `${currency.format(nextPayment.amount)} · ${formatDate(nextPayment.dueDate)}`;
+    document.querySelector("#customerGlanceMessage").textContent =
+      "Your next rent payment is shown here so you can plan ahead.";
+  } else if (records.length) {
+    statusElement.textContent = "Payments up to date";
+    statusElement.classList.add("good");
+    document.querySelector("#customerNextPayment").textContent = "No payment due";
+    document.querySelector("#customerGlanceMessage").textContent =
+      "You're all caught up. Your previous payments remain available below.";
+  } else {
+    statusElement.textContent = "Account ready";
+    document.querySelector("#customerNextPayment").textContent = "No payment added yet";
+    document.querySelector("#customerGlanceMessage").textContent =
+      "Welcome to Futura. Your property and payment information will appear here when it is added.";
+  }
+
   document.querySelector("#customerSummary").innerHTML = [
     ["Payment records", records.length],
     ["Paid", paid.length],
@@ -401,7 +430,6 @@ function renderCustomer() {
     <article class="mini-summary-card"><span>${escapeHtml(label)}</span><strong>${escapeHtml(value)}</strong></article>
   `).join("");
 
-  const latestProperty = records[0]?.property || "No property assigned";
   document.querySelector("#customerProfile").innerHTML = [
     ["Name", currentProfile.full_name || "—"],
     ["Email", currentProfile.email || currentUser.email || "—"],
@@ -586,6 +614,46 @@ window.addEventListener("popstate", () => {
 document.querySelector("#closeDialog").addEventListener("click", () => dialog.close());
 dialog.addEventListener("click", event => {
   if (event.target === dialog) dialog.close();
+});
+document.querySelector("#viewCustomerPaymentsButton").addEventListener("click", () => {
+  document.querySelector(".customer-ledger").scrollIntoView({ behavior: "smooth", block: "start" });
+});
+document.querySelector("#editCustomerProfileButton").addEventListener("click", () => {
+  if (currentProfile?.role !== "customer") return;
+  document.querySelector("#profileFullName").value = currentProfile.full_name || "";
+  document.querySelector("#profilePhone").value = currentProfile.phone || "";
+  document.querySelector("#profileEmail").value = currentProfile.email || currentUser.email || "";
+  const message = document.querySelector("#profileMessage");
+  message.textContent = "";
+  message.className = "auth-message";
+  profileDialog.showModal();
+});
+document.querySelector("#closeProfileDialog").addEventListener("click", () => profileDialog.close());
+profileDialog.addEventListener("click", event => {
+  if (event.target === profileDialog) profileDialog.close();
+});
+profileForm.addEventListener("submit", async event => {
+  event.preventDefault();
+  if (!db || currentProfile?.role !== "customer") return;
+  const data = new FormData(profileForm);
+  const profileMessage = document.querySelector("#profileMessage");
+  profileMessage.textContent = "Saving your details…";
+  profileMessage.className = "auth-message";
+  const updates = {
+    full_name: data.get("fullName").trim(),
+    phone: data.get("phone").trim()
+  };
+  const { error } = await db.from("profiles").update(updates).eq("id", currentUser.id);
+  if (error) {
+    profileMessage.textContent = error.message || "Your details could not be saved.";
+    profileMessage.className = "auth-message error";
+    return;
+  }
+  currentProfile = { ...currentProfile, ...updates };
+  setAccountDetails();
+  renderCustomer();
+  profileMessage.textContent = "Your details have been saved.";
+  profileMessage.className = "auth-message success";
 });
 form.addEventListener("submit", async event => {
   event.preventDefault();

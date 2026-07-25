@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="description" content="Futura Group rent and property tracker">
   <title>Futura Group</title>
-  <link rel="stylesheet" href="styles.css?v=customer-signup-v1">
+  <link rel="stylesheet" href="styles.css?v=customer-home-v1">
 </head>
 <body>
   <div class="advert-ticker" role="region" aria-label="Futura Group website advertisements">
@@ -109,8 +109,8 @@
         <button id="signOutButton" class="sidebar-signout" type="button">Sign out</button>
       </div>
       <div class="sidebar-note">
-        <strong>Local & private</strong>
-        <p>Your records stay in this browser.</p>
+        <strong>Secure & private</strong>
+        <p>Your account is protected and only visible to authorised users.</p>
       </div>
     </aside>
 
@@ -123,6 +123,29 @@
             <p class="subtitle">Your private tenancy and payment information.</p>
           </div>
         </header>
+        <section class="account-glance" aria-labelledby="accountGlanceTitle">
+          <div class="account-glance-copy">
+            <p class="eyebrow">ACCOUNT AT A GLANCE</p>
+            <span id="customerAccountStatus" class="glance-status">Account ready</span>
+            <h2 id="accountGlanceTitle">Everything important, in one place.</h2>
+            <p id="customerGlanceMessage">See your next payment and property details without searching.</p>
+            <div class="glance-actions">
+              <button id="viewCustomerPaymentsButton" class="primary-button" type="button">View payments</button>
+              <button id="editCustomerProfileButton" class="secondary-button" type="button">Update my details</button>
+              <a class="secondary-button" href="https://wa.me/237678504189?text=Hello%20Futura%20Group%2C%20I%20need%20help%20with%20my%20account." target="_blank" rel="noopener noreferrer">Contact Futura</a>
+            </div>
+          </div>
+          <div class="glance-details" aria-label="Important account details">
+            <article>
+              <span>Next payment</span>
+              <strong id="customerNextPayment">No payment due</strong>
+            </article>
+            <article>
+              <span>My property</span>
+              <strong id="customerGlanceProperty">Not assigned yet</strong>
+            </article>
+          </div>
+        </section>
         <section id="customerSummary" class="mini-summary-grid" aria-label="My account summary"></section>
         <section class="panel customer-profile-panel">
           <div>
@@ -366,8 +389,26 @@
     </form>
   </dialog>
 
+  <dialog id="profileDialog">
+    <form id="profileForm">
+      <div class="dialog-heading">
+        <div>
+          <p class="eyebrow">MY ACCOUNT</p>
+          <h2>Update my details</h2>
+        </div>
+        <button id="closeProfileDialog" class="icon-button" type="button" aria-label="Close">×</button>
+      </div>
+      <label>Full name<input id="profileFullName" name="fullName" type="text" autocomplete="name" maxlength="100" required></label>
+      <label>Phone number<input id="profilePhone" name="phone" type="tel" autocomplete="tel" maxlength="30" required></label>
+      <label>Email address<input id="profileEmail" type="email" disabled></label>
+      <p class="form-hint">Your email is your secure sign-in address and cannot be changed here.</p>
+      <button class="primary-button full-width" type="submit">Save my details</button>
+      <p id="profileMessage" class="auth-message" role="status" aria-live="polite"></p>
+    </form>
+  </dialog>
+
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="config.js?v=secure-portal-v1"></script>
-  <script src="app.js?v=customer-signup-v1"></script>
+  <script src="app.js?v=customer-home-v1"></script>
 </body>
 </html>
