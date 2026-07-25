@@ -4,7 +4,7 @@ A secure property and rent portal with separate administrator and customer acces
 
 ## Features
 
-- Email/password login and password reset
+- Customer self-signup, email/password login, and password reset
 - Administrator access to all customer and payment records
 - Customer access restricted to the signed-in customer's own profile and rent history
 - Database-enforced Row Level Security
@@ -19,7 +19,7 @@ A secure property and rent portal with separate administrator and customer acces
 4. Promote that user to administrator using the final SQL statement in `supabase-schema.sql`.
 5. Copy the project URL and publishable key into `config.js`.
 6. Add the deployed website address to Supabase Authentication URL Configuration.
-7. Create customer users in Authentication. Each customer automatically receives a restricted `customer` profile.
+7. Enable email signups in Supabase Authentication. Each new signup automatically receives a restricted `customer` profile.
 
 Only the publishable browser key belongs in `config.js`. Never place a Supabase secret or service-role key in this repository.
 

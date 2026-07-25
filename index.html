@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="description" content="Futura Group rent and property tracker">
   <title>Futura Group</title>
-  <link rel="stylesheet" href="styles.css?v=fixed-endless-advert-v3">
+  <link rel="stylesheet" href="styles.css?v=customer-signup-v1">
 </head>
 <body>
   <div class="advert-ticker" role="region" aria-label="Futura Group website advertisements">
@@ -44,10 +44,23 @@
       <p class="eyebrow">SECURE PORTAL</p>
       <h1 id="authTitle">Welcome back</h1>
       <p id="authIntro" class="subtitle">Sign in to view your Futura Group account.</p>
+      <div id="authTabs" class="auth-tabs" role="tablist" aria-label="Account access">
+        <button id="showLoginButton" class="auth-tab active" type="button" role="tab" aria-selected="true" aria-controls="loginForm">Sign in</button>
+        <button id="showSignupButton" class="auth-tab" type="button" role="tab" aria-selected="false" aria-controls="signupForm">Create account</button>
+      </div>
       <form id="loginForm" class="auth-form">
         <label>Email address<input id="loginEmail" name="email" type="email" autocomplete="email" required></label>
         <label>Password<input id="loginPassword" name="password" type="password" autocomplete="current-password" required></label>
         <button class="primary-button full-width" type="submit">Sign in</button>
+      </form>
+      <form id="signupForm" class="auth-form" hidden>
+        <label>Full name<input id="signupName" name="fullName" type="text" autocomplete="name" maxlength="100" required></label>
+        <label>Phone number<input id="signupPhone" name="phone" type="tel" autocomplete="tel" maxlength="30" required></label>
+        <label>Email address<input id="signupEmail" name="email" type="email" autocomplete="email" required></label>
+        <label>Password<input id="signupPassword" name="password" type="password" autocomplete="new-password" minlength="8" required></label>
+        <label>Confirm password<input id="signupConfirmPassword" name="confirmPassword" type="password" autocomplete="new-password" minlength="8" required></label>
+        <button class="primary-button full-width" type="submit">Create my account</button>
+        <p class="signup-note">New accounts are created as private customer accounts. Only you and authorised Futura administrators can access your details.</p>
       </form>
       <form id="recoveryForm" class="auth-form" hidden>
         <label>New password<input id="newPassword" name="password" type="password" autocomplete="new-password" minlength="8" required></label>
@@ -355,6 +368,6 @@
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="config.js?v=secure-portal-v1"></script>
-  <script src="app.js?v=secure-portal-v1"></script>
+  <script src="app.js?v=customer-signup-v1"></script>
 </body>
 </html>

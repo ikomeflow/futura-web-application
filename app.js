@@ -23,8 +23,12 @@ let recoveryMode = false;
 const authView = document.querySelector("#authView");
 const appShell = document.querySelector("#appShell");
 const loginForm = document.querySelector("#loginForm");
+const signupForm = document.querySelector("#signupForm");
 const recoveryForm = document.querySelector("#recoveryForm");
 const forgotPasswordButton = document.querySelector("#forgotPasswordButton");
+const authTabs = document.querySelector("#authTabs");
+const showLoginButton = document.querySelector("#showLoginButton");
+const showSignupButton = document.querySelector("#showSignupButton");
 const authMessage = document.querySelector("#authMessage");
 const setupNotice = document.querySelector("#setupNotice");
 const summaryCards = document.querySelector("#summaryCards");
@@ -79,6 +83,24 @@ function loadTheme() {
 function setAuthMessage(message = "", type = "") {
   authMessage.textContent = message;
   authMessage.className = `auth-message${type ? ` ${type}` : ""}`;
+}
+
+function setAuthMode(mode, clearMessage = true) {
+  const signingUp = mode === "signup";
+  loginForm.hidden = signingUp;
+  signupForm.hidden = !signingUp;
+  recoveryForm.hidden = true;
+  authTabs.hidden = false;
+  forgotPasswordButton.hidden = signingUp;
+  showLoginButton.classList.toggle("active", !signingUp);
+  showLoginButton.setAttribute("aria-selected", String(!signingUp));
+  showSignupButton.classList.toggle("active", signingUp);
+  showSignupButton.setAttribute("aria-selected", String(signingUp));
+  document.querySelector("#authTitle").textContent = signingUp ? "Create your account" : "Welcome back";
+  document.querySelector("#authIntro").textContent = signingUp
+    ? "Join the secure Futura Group customer portal."
+    : "Sign in to view your Futura Group account.";
+  if (clearMessage) setAuthMessage("");
 }
 
 function getStatus(record) {
@@ -136,6 +158,18 @@ async function loadProfile() {
     .single();
   if (error) throw error;
   currentProfile = data;
+
+  const metadata = currentUser.user_metadata || {};
+  const profileUpdates = {};
+  if (!currentProfile.full_name && metadata.full_name) profileUpdates.full_name = metadata.full_name;
+  if (!currentProfile.phone && metadata.phone) profileUpdates.phone = metadata.phone;
+  if (Object.keys(profileUpdates).length) {
+    const { error: updateError } = await db
+      .from("profiles")
+      .update(profileUpdates)
+      .eq("id", currentUser.id);
+    if (!updateError) currentProfile = { ...currentProfile, ...profileUpdates };
+  }
 }
 
 async function loadSecureData() {
@@ -438,6 +472,55 @@ loginForm.addEventListener("submit", async event => {
   if (error) setAuthMessage("The email or password is incorrect.", "error");
 });
 
+showLoginButton.addEventListener("click", () => setAuthMode("login"));
+showSignupButton.addEventListener("click", () => setAuthMode("signup"));
+
+signupForm.addEventListener("submit", async event => {
+  event.preventDefault();
+  if (!db) return;
+  const data = new FormData(signupForm);
+  const password = data.get("password");
+  if (password !== data.get("confirmPassword")) {
+    setAuthMessage("The passwords do not match.", "error");
+    document.querySelector("#signupConfirmPassword").focus();
+    return;
+  }
+
+  const email = data.get("email").trim();
+  const fullName = data.get("fullName").trim();
+  const phone = data.get("phone").trim();
+  const redirectTo = `${window.location.origin}${window.location.pathname}`;
+  setAuthMessage("Creating your secure account…");
+  const { data: signupData, error } = await db.auth.signUp({
+    email,
+    password,
+    options: {
+      emailRedirectTo: redirectTo,
+      data: {
+        full_name: fullName,
+        phone
+      }
+    }
+  });
+
+  if (error) {
+    const message = error.message?.toLowerCase().includes("already")
+      ? "An account with this email already exists. Please sign in or reset your password."
+      : error.message;
+    setAuthMessage(message || "Your account could not be created. Please try again.", "error");
+    return;
+  }
+
+  signupForm.reset();
+  if (signupData.session) {
+    setAuthMessage("Account created. Loading your private portal…", "success");
+    return;
+  }
+  document.querySelector("#loginEmail").value = email;
+  setAuthMode("login", false);
+  setAuthMessage("Account created. Check your email and select the confirmation link, then sign in.", "success");
+});
+
 forgotPasswordButton.addEventListener("click", async () => {
   if (!db) return;
   const email = document.querySelector("#loginEmail").value.trim();
@@ -468,9 +551,7 @@ recoveryForm.addEventListener("submit", async event => {
   }
   recoveryForm.reset();
   recoveryMode = false;
-  recoveryForm.hidden = true;
-  loginForm.hidden = false;
-  forgotPasswordButton.hidden = false;
+  setAuthMode("login", false);
   setAuthMessage("Your password has been updated.", "success");
 });
 
@@ -546,6 +627,9 @@ async function initialize() {
   if (!configured) {
     setupNotice.hidden = false;
     loginForm.querySelectorAll("input, button").forEach(element => element.disabled = true);
+    signupForm.querySelectorAll("input, button").forEach(element => element.disabled = true);
+    showLoginButton.disabled = true;
+    showSignupButton.disabled = true;
     forgotPasswordButton.disabled = true;
     setAuthMessage("The secure database connection has not been configured yet.", "error");
     return;
@@ -563,7 +647,9 @@ async function initialize() {
     if (event === "PASSWORD_RECOVERY") {
       recoveryMode = true;
       showAuth();
+      authTabs.hidden = true;
       loginForm.hidden = true;
+      signupForm.hidden = true;
       recoveryForm.hidden = false;
       forgotPasswordButton.hidden = true;
       setAuthMessage("Choose a new password for your account.");
