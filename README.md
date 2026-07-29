@@ -6,6 +6,7 @@ A secure property and rent portal with separate administrator and customer acces
 
 - Customer self-signup, email/password login, and password reset
 - Administrator access to all customer and payment records
+- Customer self-service account deletion and administrator customer-account removal
 - Customer access restricted to the signed-in customer's own profile and rent history
 - Database-enforced Row Level Security
 - Portfolio, tenant, property, and payment dashboards

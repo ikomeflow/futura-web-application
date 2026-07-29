@@ -149,6 +149,16 @@ nav { margin-top: 54px; display: grid; gap: 8px; }
 }
 .sidebar-signout:hover,
 .sidebar-signout:focus-visible { background: rgba(255,255,255,.1); outline: 2px solid rgba(120,183,255,.3); }
+.sidebar-account-settings {
+  margin-top: 9px;
+  padding: 8px 10px;
+  border: 1px solid rgba(120,183,255,.38);
+  border-radius: 9px;
+  color: #d9eaff;
+  background: rgba(23,111,214,.18);
+}
+.sidebar-account-settings:hover,
+.sidebar-account-settings:focus-visible { background: rgba(23,111,214,.32); outline: 2px solid rgba(120,183,255,.3); }
 .theme-toggle {
   display: flex;
   align-items: center;
@@ -307,6 +317,27 @@ form select:focus { border-color: var(--green); box-shadow: 0 0 0 3px var(--gree
 .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 .form-hint { color: var(--muted); font-size: 12px; }
 .full-width { width: 100%; margin-top: 12px; }
+.customer-accounts-panel { margin-top: 16px; padding: 0; overflow: hidden; }
+.customer-accounts-panel .directory-toolbar { padding: 24px; }
+.account-action-cell { width: 1%; white-space: nowrap; }
+.danger-button {
+  padding: 10px 14px;
+  border: 1px solid #c93535;
+  border-radius: 9px;
+  color: white;
+  background: #b42323;
+  font-weight: 800;
+}
+.danger-button:hover,
+.danger-button:focus-visible { background: #941b1b; outline: 2px solid rgba(201,53,53,.25); outline-offset: 2px; }
+.danger-button:disabled { cursor: not-allowed; opacity: .48; }
+.danger-zone { margin-top: 24px; padding: 16px; border: 1px solid rgba(201,53,53,.28); border-radius: 12px; background: rgba(201,53,53,.08); }
+.danger-zone strong { color: var(--red); }
+.danger-zone p,
+.delete-description { color: var(--muted); font-size: 13px; line-height: 1.55; }
+.danger-zone p { margin: 6px 0 13px; }
+.delete-description { margin: 0 0 18px; }
+.customer-delete-button { padding: 8px 10px; font-size: 11px; }
 @media (max-width: 980px) {
   .app-shell { grid-template-columns: 1fr; }
   .sidebar { position: static; height: auto; padding: 18px 24px; flex-direction: row; align-items: center; }
@@ -387,7 +418,8 @@ form select:focus { border-color: var(--green); box-shadow: 0 0 0 3px var(--gree
     border: 0;
     background: transparent;
   }
-  .account-card > :not(.sidebar-signout) { display: none; }
+  .account-card > :not(.sidebar-signout):not(.sidebar-account-settings) { display: none; }
+  .sidebar-account-settings,
   .sidebar-signout {
     min-height: 40px;
     margin: 0;

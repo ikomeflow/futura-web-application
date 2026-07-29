@@ -93,6 +93,82 @@ $$;
 revoke all on function public.is_admin() from public;
 grant execute on function public.is_admin() to authenticated;
 
+create or replace function public.delete_own_account()
+returns void
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  requester_id uuid := (select auth.uid());
+  requester_role text;
+  administrator_count integer;
+begin
+  if requester_id is null then
+    raise exception 'You must be signed in to delete an account.';
+  end if;
+
+  select role into requester_role
+  from public.profiles
+  where id = requester_id;
+
+  if requester_role = 'admin' then
+    select count(*) into administrator_count
+    from public.profiles
+    where role = 'admin';
+
+    if administrator_count <= 1 then
+      raise exception 'The final administrator account cannot be deleted.';
+    end if;
+  end if;
+
+  delete from auth.users where id = requester_id;
+end;
+$$;
+
+revoke all on function public.delete_own_account() from public;
+grant execute on function public.delete_own_account() to authenticated;
+
+create or replace function public.admin_delete_user(target_user_id uuid)
+returns void
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  target_role text;
+begin
+  if not public.is_admin() then
+    raise exception 'Administrator access is required.';
+  end if;
+
+  if target_user_id is null then
+    raise exception 'A customer account is required.';
+  end if;
+
+  if target_user_id = (select auth.uid()) then
+    raise exception 'Use Account settings to delete your own account.';
+  end if;
+
+  select role into target_role
+  from public.profiles
+  where id = target_user_id;
+
+  if target_role is null then
+    raise exception 'The customer account was not found.';
+  end if;
+
+  if target_role = 'admin' then
+    raise exception 'Administrator accounts cannot be deleted from customer management.';
+  end if;
+
+  delete from auth.users where id = target_user_id;
+end;
+$$;
+
+revoke all on function public.admin_delete_user(uuid) from public;
+grant execute on function public.admin_delete_user(uuid) to authenticated;
+
 alter table public.profiles enable row level security;
 alter table public.rent_records enable row level security;
 

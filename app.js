@@ -19,6 +19,7 @@ let currentProfile = null;
 let customerProfiles = [];
 let records = [];
 let recoveryMode = false;
+let pendingDeletion = null;
 
 const authView = document.querySelector("#authView");
 const appShell = document.querySelector("#appShell");
@@ -36,6 +37,8 @@ const dialog = document.querySelector("#paymentDialog");
 const form = document.querySelector("#paymentForm");
 const profileDialog = document.querySelector("#profileDialog");
 const profileForm = document.querySelector("#profileForm");
+const deleteAccountDialog = document.querySelector("#deleteAccountDialog");
+const deleteAccountForm = document.querySelector("#deleteAccountForm");
 const customerSelect = document.querySelector("#customerSelect");
 const propertyGrid = document.querySelector("#propertyGrid");
 const customerView = document.querySelector("#customerView");
@@ -355,6 +358,24 @@ function renderTenants(query = "") {
       <td><span class="status ${status}">${status}</span></td>
     </tr>`;
   }).join("") || '<tr><td colspan="5" class="empty">No matching customers found.</td></tr>';
+
+  const matchingProfiles = customerProfiles.filter(profile =>
+    `${profile.full_name} ${profile.email} ${profile.phone}`.toLowerCase().includes(normalized)
+  );
+  document.querySelector("#customerAccountTable").innerHTML = matchingProfiles.map(profile => {
+    const rentRecordCount = records.filter(record => record.userId === profile.id).length;
+    return `<tr>
+      <td><strong>${escapeHtml(profile.full_name || "New customer")}</strong><small>${escapeHtml(profile.email)}</small></td>
+      <td>${escapeHtml(profile.phone || "—")}</td>
+      <td>${escapeHtml(rentRecordCount)}</td>
+      <td class="account-action-cell">
+        <button class="danger-button customer-delete-button" type="button"
+          data-user-id="${escapeHtml(profile.id)}"
+          data-user-name="${escapeHtml(profile.full_name || "this customer")}"
+          data-user-email="${escapeHtml(profile.email)}">Delete account</button>
+      </td>
+    </tr>`;
+  }).join("") || '<tr><td colspan="4" class="empty">No matching customer accounts found.</td></tr>';
 }
 
 function renderPayments(query = "", statusFilter = "all") {
@@ -646,8 +667,9 @@ dialog.addEventListener("click", event => {
 document.querySelector("#viewCustomerPaymentsButton").addEventListener("click", () => {
   document.querySelector(".customer-ledger").scrollIntoView({ behavior: "smooth", block: "start" });
 });
-document.querySelector("#editCustomerProfileButton").addEventListener("click", () => {
-  if (currentProfile?.role !== "customer") return;
+
+function openProfileDialog() {
+  if (!currentProfile) return;
   document.querySelector("#profileFullName").value = currentProfile.full_name || "";
   document.querySelector("#profilePhone").value = currentProfile.phone || "";
   document.querySelector("#profileEmail").value = currentProfile.email || currentUser.email || "";
@@ -655,6 +677,41 @@ document.querySelector("#editCustomerProfileButton").addEventListener("click", (
   message.textContent = "";
   message.className = "auth-message";
   profileDialog.showModal();
+}
+
+function closeDeleteAccountDialog() {
+  pendingDeletion = null;
+  deleteAccountForm.reset();
+  document.querySelector("#confirmDeleteAccountButton").disabled = true;
+  document.querySelector("#deleteAccountMessage").textContent = "";
+  deleteAccountDialog.close();
+}
+
+function openDeleteAccountDialog({ mode, userId = "", name = "", email = "" }) {
+  const deletingSelf = mode === "self";
+  const expected = deletingSelf ? "DELETE" : email;
+  pendingDeletion = { mode, userId, name, email, expected };
+  deleteAccountForm.reset();
+  document.querySelector("#deleteAccountTitle").textContent =
+    deletingSelf ? "Delete my account" : `Delete ${name || "customer"}`;
+  document.querySelector("#deleteAccountDescription").textContent = deletingSelf
+    ? "This permanently removes your account, profile, and payment history. The final administrator account cannot be deleted."
+    : `This permanently removes ${name || "this customer"}, their profile, and all linked payment records.`;
+  document.querySelector("#deleteConfirmationLabel").firstChild.textContent =
+    deletingSelf ? "Type DELETE to confirm " : `Type ${email} to confirm `;
+  document.querySelector("#deleteConfirmationInput").placeholder = expected;
+  document.querySelector("#confirmDeleteAccountButton").disabled = true;
+  const message = document.querySelector("#deleteAccountMessage");
+  message.textContent = "";
+  message.className = "auth-message";
+  deleteAccountDialog.showModal();
+}
+
+document.querySelector("#editCustomerProfileButton").addEventListener("click", openProfileDialog);
+document.querySelector("#accountSettingsButton").addEventListener("click", openProfileDialog);
+document.querySelector("#deleteOwnAccountButton").addEventListener("click", () => {
+  profileDialog.close();
+  openDeleteAccountDialog({ mode: "self" });
 });
 document.querySelector("#closeProfileDialog").addEventListener("click", () => profileDialog.close());
 profileDialog.addEventListener("click", event => {
@@ -662,7 +719,7 @@ profileDialog.addEventListener("click", event => {
 });
 profileForm.addEventListener("submit", async event => {
   event.preventDefault();
-  if (!db || currentProfile?.role !== "customer") return;
+  if (!db || !currentProfile) return;
   const data = new FormData(profileForm);
   const profileMessage = document.querySelector("#profileMessage");
   profileMessage.textContent = "Saving your details…";
@@ -679,9 +736,62 @@ profileForm.addEventListener("submit", async event => {
   }
   currentProfile = { ...currentProfile, ...updates };
   setAccountDetails();
-  renderCustomer();
+  if (currentProfile.role === "admin") renderAdmin();
+  else renderCustomer();
   profileMessage.textContent = "Your details have been saved.";
   profileMessage.className = "auth-message success";
+});
+document.querySelector("#customerAccountTable").addEventListener("click", event => {
+  const button = event.target.closest("[data-user-id]");
+  if (!button || currentProfile?.role !== "admin") return;
+  openDeleteAccountDialog({
+    mode: "admin",
+    userId: button.dataset.userId,
+    name: button.dataset.userName,
+    email: button.dataset.userEmail
+  });
+});
+document.querySelector("#deleteConfirmationInput").addEventListener("input", event => {
+  document.querySelector("#confirmDeleteAccountButton").disabled =
+    !pendingDeletion || event.target.value.trim() !== pendingDeletion.expected;
+});
+document.querySelector("#closeDeleteAccountDialog").addEventListener("click", closeDeleteAccountDialog);
+deleteAccountDialog.addEventListener("click", event => {
+  if (event.target === deleteAccountDialog) closeDeleteAccountDialog();
+});
+deleteAccountForm.addEventListener("submit", async event => {
+  event.preventDefault();
+  if (!db || !pendingDeletion) return;
+  const confirmation = document.querySelector("#deleteConfirmationInput").value.trim();
+  if (confirmation !== pendingDeletion.expected) return;
+
+  const deletion = { ...pendingDeletion };
+  const deleteButton = document.querySelector("#confirmDeleteAccountButton");
+  const message = document.querySelector("#deleteAccountMessage");
+  deleteButton.disabled = true;
+  message.textContent = "Deleting account…";
+  message.className = "auth-message";
+  const { error } = deletion.mode === "self"
+    ? await db.rpc("delete_own_account")
+    : await db.rpc("admin_delete_user", { target_user_id: deletion.userId });
+
+  if (error) {
+    message.textContent = error.message || "The account could not be deleted.";
+    message.className = "auth-message error";
+    deleteButton.disabled = false;
+    return;
+  }
+
+  if (deletion.mode === "self") {
+    await db.auth.signOut({ scope: "local" });
+    closeDeleteAccountDialog();
+    showAuth();
+    setAuthMessage("Your account has been permanently deleted.", "success");
+    return;
+  }
+
+  closeDeleteAccountDialog();
+  await loadSecureData();
 });
 form.addEventListener("submit", async event => {
   event.preventDefault();
