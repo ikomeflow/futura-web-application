@@ -6,18 +6,13 @@ const currency = new Intl.NumberFormat("en-US", {
   maximumFractionDigits: 0
 });
 
-const propertyPortfolio = [
-  { name: "Executive Hotel", type: "Hotel property" },
-  { name: "Bakweri Town House", type: "Town house" },
-  { name: "Orange Entrance Likomba Tiko", type: "Residential building" },
-  { name: "Bimbia Bonabile", type: "Residential building" }
-];
-
 let db = null;
 let currentUser = null;
 let currentProfile = null;
 let customerProfiles = [];
 let records = [];
+let properties = [];
+let reminders = [];
 let recoveryMode = false;
 let pendingDeletion = null;
 
@@ -39,6 +34,10 @@ const profileDialog = document.querySelector("#profileDialog");
 const profileForm = document.querySelector("#profileForm");
 const deleteAccountDialog = document.querySelector("#deleteAccountDialog");
 const deleteAccountForm = document.querySelector("#deleteAccountForm");
+const propertyDialog = document.querySelector("#propertyDialog");
+const propertyForm = document.querySelector("#propertyForm");
+const customerAdminDialog = document.querySelector("#customerAdminDialog");
+const customerAdminForm = document.querySelector("#customerAdminForm");
 const customerSelect = document.querySelector("#customerSelect");
 const propertyGrid = document.querySelector("#propertyGrid");
 const customerView = document.querySelector("#customerView");
@@ -135,6 +134,17 @@ function mapRecord(row) {
   };
 }
 
+function mapProperty(row) {
+  return {
+    id: row.id,
+    name: row.name,
+    type: row.property_type,
+    address: row.address,
+    monthlyTarget: Number(row.monthly_target),
+    status: row.status
+  };
+}
+
 function showAuth() {
   authView.hidden = false;
   appShell.hidden = true;
@@ -179,14 +189,21 @@ async function loadProfile() {
 
 async function loadSecureData() {
   if (currentProfile.role === "admin") {
-    const [recordsResult, profilesResult] = await Promise.all([
+    await db.rpc("refresh_rent_reminders");
+    const [recordsResult, profilesResult, propertiesResult, remindersResult] = await Promise.all([
       db.from("rent_records").select("*").order("due_date", { ascending: false }),
-      db.from("profiles").select("id, full_name, email, phone, role").order("full_name")
+      db.from("profiles").select("id, full_name, email, phone, role").order("full_name"),
+      db.from("properties").select("*").order("status").order("name"),
+      db.from("rent_reminders").select("*").order("status").order("scheduled_for")
     ]);
     if (recordsResult.error) throw recordsResult.error;
     if (profilesResult.error) throw profilesResult.error;
+    if (propertiesResult.error) throw propertiesResult.error;
+    if (remindersResult.error) throw remindersResult.error;
     records = (recordsResult.data || []).map(mapRecord);
     customerProfiles = (profilesResult.data || []).filter(profile => profile.role === "customer");
+    properties = (propertiesResult.data || []).map(mapProperty);
+    reminders = remindersResult.data || [];
     populateCustomerSelect();
     renderAdmin();
   } else {
@@ -198,6 +215,8 @@ async function loadSecureData() {
     if (error) throw error;
     records = (data || []).map(mapRecord);
     customerProfiles = [];
+    properties = [];
+    reminders = [];
     renderCustomer();
   }
 }
@@ -249,7 +268,7 @@ function renderAdmin() {
   const rate = totalRent ? Math.round((collected / totalRent) * 100) : 0;
 
   summaryCards.innerHTML = [
-    ["Properties", propertyPortfolio.length, `${records.length} occupied units`],
+    ["Properties", properties.filter(property => property.status === "active").length, `${records.length} rent records`],
     ["Monthly rent", currency.format(totalRent), "Expected this month"],
     ["Collected", currency.format(collected), `${paid.length} payments received`],
     ["Outstanding", currency.format(outstandingTotal), `${outstanding.length} payments pending`]
@@ -280,16 +299,17 @@ function renderAdmin() {
   renderProperties();
   renderTenants(tenantSearch.value);
   renderPayments(paymentSearch.value, paymentStatusFilter.value);
+  renderReminders();
 }
 
 function renderProperties() {
-  const knownNames = new Set(propertyPortfolio.map(property => property.name));
+  const knownNames = new Set(properties.map(property => property.name));
   const dynamicProperties = records
     .map(buildingName)
     .filter(name => !knownNames.has(name))
-    .map(name => ({ name, type: "Property" }));
+    .map(name => ({ id: "", name, type: "Unregistered property", address: "", monthlyTarget: 0, status: "active" }));
 
-  propertyGrid.innerHTML = [...propertyPortfolio, ...dynamicProperties].map(property => {
+  propertyGrid.innerHTML = [...properties, ...dynamicProperties].map(property => {
     const tenants = records.filter(record => buildingName(record) === property.name);
     const expected = tenants.reduce((sum, record) => sum + record.amount, 0);
     const collected = tenants.filter(record => record.paidDate)
@@ -310,8 +330,11 @@ function renderProperties() {
 
     return `<article class="property-card" tabindex="0">
       <div class="property-card-header">
-        <div><p class="eyebrow">${escapeHtml(property.type)}</p><h2>${escapeHtml(property.name)}</h2></div>
-        <div class="property-price">${escapeHtml(currency.format(expected))}<span>monthly building rent</span></div>
+        <div><p class="eyebrow">${escapeHtml(property.type)} · ${escapeHtml(property.status)}</p><h2>${escapeHtml(property.name)}</h2><small>${escapeHtml(property.address || "Address not added")}</small></div>
+        <div class="property-card-actions">
+          <div class="property-price">${escapeHtml(currency.format(property.monthlyTarget || expected))}<span>monthly target</span></div>
+          ${property.id ? `<button class="secondary-button property-edit-button" type="button" data-property-id="${escapeHtml(property.id)}">Edit property</button>` : ""}
+        </div>
       </div>
       <div class="property-card-body">
         <div class="property-stats">
@@ -369,7 +392,11 @@ function renderTenants(query = "") {
       <td>${escapeHtml(profile.phone || "—")}</td>
       <td>${escapeHtml(rentRecordCount)}</td>
       <td class="account-action-cell">
+        <button class="secondary-button customer-edit-button" type="button"
+          data-action="edit-customer"
+          data-user-id="${escapeHtml(profile.id)}">Edit</button>
         <button class="danger-button customer-delete-button" type="button"
+          data-action="delete-customer"
           data-user-id="${escapeHtml(profile.id)}"
           data-user-name="${escapeHtml(profile.full_name || "this customer")}"
           data-user-email="${escapeHtml(profile.email)}">Delete account</button>
@@ -406,8 +433,40 @@ function renderPayments(query = "", statusFilter = "all") {
       <td>${escapeHtml(formatDate(record.dueDate))}</td>
       <td>${escapeHtml(formatDate(record.paidDate))}</td>
       <td><span class="status ${status}">${status}</span></td>
+      <td class="table-actions">
+        ${record.paidDate ? `<button class="secondary-button compact-button" type="button" data-payment-action="receipt" data-record-id="${escapeHtml(record.id)}">Receipt</button>` : ""}
+        <button class="secondary-button compact-button" type="button" data-payment-action="edit" data-record-id="${escapeHtml(record.id)}">Edit</button>
+      </td>
     </tr>`;
-  }).join("") || '<tr><td colspan="6" class="empty">No matching payments found.</td></tr>';
+  }).join("") || '<tr><td colspan="7" class="empty">No matching payments found.</td></tr>';
+}
+
+function renderReminders() {
+  const pending = reminders.filter(reminder => reminder.status === "pending");
+  const reminderList = document.querySelector("#reminderList");
+  reminderList.innerHTML = pending.map(reminder => {
+    const record = records.find(item => item.id === reminder.record_id);
+    const profile = customerProfiles.find(item => item.id === reminder.user_id);
+    if (!record || !profile) return "";
+    const message = reminder.reminder_type === "overdue"
+      ? `Hello ${profile.full_name || "customer"}, your rent of ${currency.format(record.amount)} for ${record.property} was due on ${formatDate(record.dueDate)}. Please contact Futura Group regarding payment.`
+      : `Hello ${profile.full_name || "customer"}, this is a reminder that rent of ${currency.format(record.amount)} for ${record.property} is due on ${formatDate(record.dueDate)}.`;
+    const emailHref = `mailto:${encodeURIComponent(profile.email)}?subject=${encodeURIComponent("Futura Group rent reminder")}&body=${encodeURIComponent(message)}`;
+    const phone = (profile.phone || "").replace(/\D/g, "");
+    const whatsappHref = phone ? `https://wa.me/${phone}?text=${encodeURIComponent(message)}` : "";
+    return `<article class="reminder-item">
+      <div>
+        <span class="status ${reminder.reminder_type === "overdue" ? "overdue" : "due"}">${escapeHtml(reminder.reminder_type)}</span>
+        <strong>${escapeHtml(profile.full_name || profile.email)}</strong>
+        <p>${escapeHtml(record.property)} · ${escapeHtml(currency.format(record.amount))} · Due ${escapeHtml(formatDate(record.dueDate))}</p>
+      </div>
+      <div class="reminder-actions">
+        <a class="secondary-button compact-button" href="${emailHref}" data-reminder-id="${escapeHtml(reminder.id)}">Email</a>
+        ${whatsappHref ? `<a class="secondary-button compact-button" href="${whatsappHref}" target="_blank" rel="noopener noreferrer" data-reminder-id="${escapeHtml(reminder.id)}">WhatsApp</a>` : ""}
+        <button class="text-button compact-button" type="button" data-reminder-action="dismiss" data-reminder-id="${escapeHtml(reminder.id)}">Dismiss</button>
+      </div>
+    </article>`;
+  }).join("") || '<p class="empty">No reminders need attention right now.</p>';
 }
 
 function renderCustomer() {
@@ -468,8 +527,9 @@ function renderCustomer() {
       <td>${escapeHtml(formatDate(record.dueDate))}</td>
       <td>${escapeHtml(formatDate(record.paidDate))}</td>
       <td><span class="status ${status}">${status}</span></td>
+      <td>${record.paidDate ? `<button class="secondary-button compact-button" type="button" data-customer-receipt-id="${escapeHtml(record.id)}">Receipt</button>` : "—"}</td>
     </tr>`;
-  }).join("") || '<tr><td colspan="5" class="empty">No payment records are linked to this account yet.</td></tr>';
+  }).join("") || '<tr><td colspan="6" class="empty">No payment records are linked to this account yet.</td></tr>';
 }
 
 function showView(view) {
@@ -505,8 +565,96 @@ function navigateTo(view) {
   window.scrollTo({ top: 0, behavior: "smooth" });
 }
 
-function openPaymentDialog() {
-  if (currentProfile?.role === "admin") dialog.showModal();
+function openPaymentDialog(record = null) {
+  if (currentProfile?.role !== "admin") return;
+  form.reset();
+  document.querySelector("#paymentRecordId").value = record?.id || "";
+  document.querySelector("#paymentDialogTitle").textContent = record ? "Edit rent record" : "Record a rent payment";
+  document.querySelector("#deletePaymentButton").hidden = !record;
+  document.querySelector("#paymentFormMessage").textContent = "";
+  if (record) {
+    customerSelect.value = record.userId;
+    form.elements.property.value = record.property;
+    form.elements.amount.value = record.amount;
+    form.elements.dueDate.value = record.dueDate;
+    form.elements.paidDate.value = record.paidDate;
+  }
+  dialog.showModal();
+}
+
+function csvCell(value) {
+  return `"${String(value ?? "").replaceAll('"', '""')}"`;
+}
+
+function downloadStatement(statementRecords, filename) {
+  const rows = [
+    ["Tenant", "Property", "Amount XAF", "Due date", "Paid date", "Status"],
+    ...statementRecords.map(record => [
+      record.tenant,
+      record.property,
+      record.amount,
+      record.dueDate,
+      record.paidDate,
+      getStatus(record)
+    ])
+  ];
+  const blob = new Blob([`\uFEFF${rows.map(row => row.map(csvCell).join(",")).join("\r\n")}`], {
+    type: "text/csv;charset=utf-8"
+  });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = filename;
+  link.click();
+  URL.revokeObjectURL(url);
+}
+
+function openReceipt(record) {
+  if (!record?.paidDate) return;
+  const receiptWindow = window.open("", "_blank", "width=760,height=760");
+  if (!receiptWindow) {
+    window.alert("Allow pop-ups to open and print the receipt.");
+    return;
+  }
+  receiptWindow.document.write(`<!doctype html><html><head><title>Futura receipt</title>
+    <style>body{font:16px/1.55 Arial,sans-serif;color:#10223b;margin:0;padding:40px}.receipt{max-width:680px;margin:auto;border:1px solid #dce6f2;border-radius:18px;padding:34px}h1{margin:0 0 6px}.muted{color:#687a92}.amount{font-size:30px;font-weight:800;margin:26px 0}.row{display:flex;justify-content:space-between;gap:20px;padding:11px 0;border-bottom:1px solid #e8eef6}.actions{margin-top:28px}button{padding:12px 18px;border:0;border-radius:9px;background:#176fd6;color:#fff;font-weight:700}@media print{.actions{display:none}.receipt{border:0}}</style>
+    </head><body><section class="receipt"><h1>Futura Group</h1><p class="muted">Official rent payment receipt</p>
+    <div class="amount">${escapeHtml(currency.format(record.amount))}</div>
+    <div class="row"><span>Customer</span><strong>${escapeHtml(record.tenant)}</strong></div>
+    <div class="row"><span>Property</span><strong>${escapeHtml(record.property)}</strong></div>
+    <div class="row"><span>Due date</span><strong>${escapeHtml(formatDate(record.dueDate))}</strong></div>
+    <div class="row"><span>Paid on</span><strong>${escapeHtml(formatDate(record.paidDate))}</strong></div>
+    <div class="row"><span>Receipt reference</span><strong>${escapeHtml(record.id.slice(0, 8).toUpperCase())}</strong></div>
+    <div class="actions"><button onclick="window.print()">Print or save as PDF</button></div>
+    </section></body></html>`);
+  receiptWindow.document.close();
+}
+
+function openPropertyDialog(property = null) {
+  propertyForm.reset();
+  document.querySelector("#propertyId").value = property?.id || "";
+  document.querySelector("#propertyDialogTitle").textContent = property ? "Edit property" : "Add a property";
+  document.querySelector("#deletePropertyButton").hidden = !property;
+  document.querySelector("#propertyFormMessage").textContent = "";
+  if (property) {
+    document.querySelector("#propertyName").value = property.name;
+    document.querySelector("#propertyType").value = property.type;
+    document.querySelector("#propertyAddress").value = property.address;
+    document.querySelector("#propertyMonthlyTarget").value = property.monthlyTarget;
+    document.querySelector("#propertyStatus").value = property.status;
+  }
+  propertyDialog.showModal();
+}
+
+function openCustomerAdminDialog(profile) {
+  if (!profile) return;
+  customerAdminForm.reset();
+  document.querySelector("#adminCustomerId").value = profile.id;
+  document.querySelector("#adminCustomerName").value = profile.full_name || "";
+  document.querySelector("#adminCustomerPhone").value = profile.phone || "";
+  document.querySelector("#adminCustomerEmail").value = profile.email || "";
+  document.querySelector("#customerAdminMessage").textContent = "";
+  customerAdminDialog.showModal();
 }
 
 document.querySelectorAll("[data-password-toggle]").forEach(button => {
@@ -637,7 +785,14 @@ document.querySelector("#signOutButton").addEventListener("click", async () => {
 });
 
 document.querySelectorAll("#addPaymentButton, #addPropertyPaymentButton, #addTenantPaymentButton, #addLedgerPaymentButton")
-  .forEach(button => button.addEventListener("click", openPaymentDialog));
+  .forEach(button => button.addEventListener("click", () => openPaymentDialog()));
+document.querySelector("#addPropertyButton").addEventListener("click", () => openPropertyDialog());
+document.querySelector("#downloadCustomerStatementButton").addEventListener("click", () =>
+  downloadStatement(records, `futura-statement-${new Date().toISOString().slice(0, 10)}.csv`));
+document.querySelector("#downloadAdminStatementButton").addEventListener("click", () =>
+  downloadStatement(records, `futura-all-customers-${new Date().toISOString().slice(0, 10)}.csv`));
+document.querySelector("#downloadPaymentStatementButton").addEventListener("click", () =>
+  downloadStatement(records, `futura-payment-ledger-${new Date().toISOString().slice(0, 10)}.csv`));
 overviewNav.addEventListener("click", () => navigateTo("overview"));
 propertiesNav.addEventListener("click", () => navigateTo("properties"));
 tenantsNav.addEventListener("click", () => navigateTo("tenants"));
@@ -666,6 +821,23 @@ dialog.addEventListener("click", event => {
 });
 document.querySelector("#viewCustomerPaymentsButton").addEventListener("click", () => {
   document.querySelector(".customer-ledger").scrollIntoView({ behavior: "smooth", block: "start" });
+});
+document.querySelector("#customerPaymentTable").addEventListener("click", event => {
+  const button = event.target.closest("[data-customer-receipt-id]");
+  if (!button) return;
+  openReceipt(records.find(record => record.id === button.dataset.customerReceiptId));
+});
+document.querySelector("#allPaymentTable").addEventListener("click", event => {
+  const button = event.target.closest("[data-payment-action]");
+  if (!button) return;
+  const record = records.find(item => item.id === button.dataset.recordId);
+  if (button.dataset.paymentAction === "receipt") openReceipt(record);
+  if (button.dataset.paymentAction === "edit") openPaymentDialog(record);
+});
+propertyGrid.addEventListener("click", event => {
+  const button = event.target.closest("[data-property-id]");
+  if (!button) return;
+  openPropertyDialog(properties.find(property => property.id === button.dataset.propertyId));
 });
 
 function openProfileDialog() {
@@ -744,6 +916,11 @@ profileForm.addEventListener("submit", async event => {
 document.querySelector("#customerAccountTable").addEventListener("click", event => {
   const button = event.target.closest("[data-user-id]");
   if (!button || currentProfile?.role !== "admin") return;
+  if (button.dataset.action === "edit-customer") {
+    openCustomerAdminDialog(customerProfiles.find(profile => profile.id === button.dataset.userId));
+    return;
+  }
+  if (button.dataset.action !== "delete-customer") return;
   openDeleteAccountDialog({
     mode: "admin",
     userId: button.dataset.userId,
@@ -798,25 +975,139 @@ form.addEventListener("submit", async event => {
   if (!db || currentProfile?.role !== "admin") return;
   const data = new FormData(form);
   const profile = customerProfiles.find(item => item.id === data.get("userId"));
+  const recordId = data.get("recordId");
+  const message = document.querySelector("#paymentFormMessage");
   if (!profile) {
-    setAuthMessage("Select a valid customer.", "error");
+    message.textContent = "Select a valid customer.";
+    message.className = "auth-message error";
     return;
   }
 
-  const { error } = await db.from("rent_records").insert({
+  const values = {
     user_id: profile.id,
     tenant_name: profile.full_name || profile.email,
     property: data.get("property").trim(),
     amount: Number(data.get("amount")),
     due_date: data.get("dueDate"),
     paid_date: data.get("paidDate") || null
-  });
+  };
+  const { error } = recordId
+    ? await db.from("rent_records").update(values).eq("id", recordId)
+    : await db.from("rent_records").insert(values);
   if (error) {
-    window.alert(error.message);
+    message.textContent = error.message;
+    message.className = "auth-message error";
     return;
   }
   form.reset();
   dialog.close();
+  await loadSecureData();
+});
+
+document.querySelector("#deletePaymentButton").addEventListener("click", async () => {
+  const recordId = document.querySelector("#paymentRecordId").value;
+  if (!recordId || !window.confirm("Delete this payment record? This cannot be undone.")) return;
+  const { error } = await db.from("rent_records").delete().eq("id", recordId);
+  if (error) {
+    const message = document.querySelector("#paymentFormMessage");
+    message.textContent = error.message;
+    message.className = "auth-message error";
+    return;
+  }
+  dialog.close();
+  await loadSecureData();
+});
+
+document.querySelector("#closePropertyDialog").addEventListener("click", () => propertyDialog.close());
+propertyDialog.addEventListener("click", event => {
+  if (event.target === propertyDialog) propertyDialog.close();
+});
+propertyForm.addEventListener("submit", async event => {
+  event.preventDefault();
+  const data = new FormData(propertyForm);
+  const propertyId = data.get("propertyId");
+  const values = {
+    name: data.get("name").trim(),
+    property_type: data.get("propertyType").trim() || "Residential property",
+    address: data.get("address").trim(),
+    monthly_target: Number(data.get("monthlyTarget") || 0),
+    status: data.get("status")
+  };
+  const { error } = propertyId
+    ? await db.from("properties").update(values).eq("id", propertyId)
+    : await db.from("properties").insert(values);
+  const message = document.querySelector("#propertyFormMessage");
+  if (error) {
+    message.textContent = error.message;
+    message.className = "auth-message error";
+    return;
+  }
+  propertyDialog.close();
+  await loadSecureData();
+});
+document.querySelector("#deletePropertyButton").addEventListener("click", async () => {
+  const propertyId = document.querySelector("#propertyId").value;
+  if (!propertyId || !window.confirm("Delete this property from the directory? Rent records will remain.")) return;
+  const { error } = await db.from("properties").delete().eq("id", propertyId);
+  if (error) {
+    const message = document.querySelector("#propertyFormMessage");
+    message.textContent = error.message;
+    message.className = "auth-message error";
+    return;
+  }
+  propertyDialog.close();
+  await loadSecureData();
+});
+
+document.querySelector("#closeCustomerAdminDialog").addEventListener("click", () => customerAdminDialog.close());
+customerAdminDialog.addEventListener("click", event => {
+  if (event.target === customerAdminDialog) customerAdminDialog.close();
+});
+customerAdminForm.addEventListener("submit", async event => {
+  event.preventDefault();
+  const data = new FormData(customerAdminForm);
+  const customerId = data.get("customerId");
+  const updates = {
+    full_name: data.get("fullName").trim(),
+    phone: data.get("phone").trim()
+  };
+  const { error } = await db.from("profiles").update(updates).eq("id", customerId);
+  const message = document.querySelector("#customerAdminMessage");
+  if (error) {
+    message.textContent = error.message;
+    message.className = "auth-message error";
+    return;
+  }
+  customerAdminDialog.close();
+  await loadSecureData();
+});
+
+async function updateReminderStatus(reminderId, status) {
+  const { error } = await db.from("rent_reminders")
+    .update({ status, sent_at: status === "sent" ? new Date().toISOString() : null })
+    .eq("id", reminderId);
+  if (error) {
+    window.alert(error.message);
+    return;
+  }
+  const reminder = reminders.find(item => item.id === reminderId);
+  if (reminder) {
+    reminder.status = status;
+    reminder.sent_at = status === "sent" ? new Date().toISOString() : null;
+  }
+  renderReminders();
+}
+
+document.querySelector("#reminderList").addEventListener("click", event => {
+  const control = event.target.closest("[data-reminder-id]");
+  if (!control) return;
+  updateReminderStatus(
+    control.dataset.reminderId,
+    control.dataset.reminderAction === "dismiss" ? "dismissed" : "sent"
+  );
+});
+document.querySelector("#refreshRemindersButton").addEventListener("click", async () => {
+  await db.rpc("refresh_rent_reminders");
   await loadSecureData();
 });
 

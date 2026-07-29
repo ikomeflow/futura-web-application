@@ -338,6 +338,27 @@ form select:focus { border-color: var(--green); box-shadow: 0 0 0 3px var(--gree
 .danger-zone p { margin: 6px 0 13px; }
 .delete-description { margin: 0 0 18px; }
 .customer-delete-button { padding: 8px 10px; font-size: 11px; }
+.customer-edit-button { padding: 8px 10px; font-size: 11px; }
+.table-actions,
+.reminder-actions { display: flex; flex-wrap: wrap; gap: 7px; }
+.compact-button { min-height: 34px; margin: 0; padding: 7px 10px; font-size: 11px; }
+.property-card-actions { display: grid; justify-items: end; gap: 12px; }
+.property-card-header small { display: block; margin-top: 7px; color: #b8cbe4; }
+.property-edit-button { border-color: rgba(255,255,255,.3); color: white; background: rgba(255,255,255,.08); }
+.reminders-panel { margin-top: 16px; padding: 0; overflow: hidden; }
+.reminders-panel .directory-toolbar { padding: 24px; }
+.reminder-list { display: grid; gap: 0; }
+.reminder-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 22px;
+  padding: 18px 24px;
+  border-top: 1px solid var(--line);
+}
+.reminder-item strong { display: block; margin-top: 8px; }
+.reminder-item p { margin: 5px 0 0; color: var(--muted); font-size: 13px; }
+.reminder-actions a { text-decoration: none; }
 @media (max-width: 980px) {
   .app-shell { grid-template-columns: 1fr; }
   .sidebar { position: static; height: auto; padding: 18px 24px; flex-direction: row; align-items: center; }
@@ -490,8 +511,14 @@ form select:focus { border-color: var(--green); box-shadow: 0 0 0 3px var(--gree
   .customer-ledger .management-table td:nth-child(3)::before { content: "Due date"; }
   .customer-ledger .management-table td:nth-child(4)::before { content: "Paid on"; }
   .customer-ledger .management-table td:nth-child(5)::before { content: "Status"; }
+  .customer-ledger .management-table td:nth-child(6)::before { content: "Receipt"; }
   .customer-ledger .management-table td.empty { display: block; text-align: center; }
   .customer-ledger .management-table td.empty::before { content: none; }
+  .property-card-header,
+  .reminder-item { align-items: flex-start; flex-direction: column; }
+  .property-card-actions { justify-items: start; }
+  .reminder-actions { width: 100%; }
+  .reminder-actions > * { flex: 1; text-align: center; }
 }
 @media (max-width: 380px) {
   .sidebar { padding-inline: 9px; }

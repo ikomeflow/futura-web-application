@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="description" content="Futura Group rent and property tracker">
   <title>Futura Group</title>
-  <link rel="stylesheet" href="styles.css?v=customer-portal-v2">
+  <link rel="stylesheet" href="styles.css?v=management-suite-v1">
 </head>
 <body>
   <div class="advert-ticker" role="region" aria-label="Futura Group website advertisements">
@@ -166,6 +166,7 @@
             <p id="customerGlanceMessage">See your next payment and property details without searching.</p>
             <div class="glance-actions">
               <button id="viewCustomerPaymentsButton" class="primary-button" type="button">View payments</button>
+              <button id="downloadCustomerStatementButton" class="secondary-button" type="button">Download statement</button>
               <button id="editCustomerProfileButton" class="secondary-button" type="button">Update my details</button>
               <a class="secondary-button" href="https://wa.me/237678504189?text=Hello%20Futura%20Group%2C%20I%20need%20help%20with%20my%20account." target="_blank" rel="noopener noreferrer">Contact Futura</a>
             </div>
@@ -205,6 +206,7 @@
                   <th>Due date</th>
                   <th>Paid on</th>
                   <th>Status</th>
+                  <th>Receipt</th>
                 </tr>
               </thead>
               <tbody id="customerPaymentTable"></tbody>
@@ -303,6 +305,7 @@
                 <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20.5 3.5A11.8 11.8 0 0 0 12.1 0C5.6 0 .3 5.3.3 11.8c0 2.1.5 4.1 1.6 5.9L.2 24l6.5-1.7c1.7.9 3.6 1.4 5.5 1.4 6.5 0 11.8-5.3 11.8-11.8 0-3.2-1.2-6.1-3.5-8.4Zm-8.3 18.2c-1.7 0-3.4-.5-4.9-1.3l-.4-.2-3.9 1 1-3.8-.2-.4a9.8 9.8 0 1 1 8.4 4.7Zm5.4-7.4c-.3-.1-1.7-.8-2-.9-.3-.1-.5-.1-.7.2-.2.3-.8.9-1 1.1-.2.2-.4.2-.7.1-1.8-.9-3-1.6-4.2-3.6-.3-.5.3-.5.9-1.6.1-.2.1-.4 0-.6l-.9-2.2c-.2-.5-.5-.5-.7-.5h-.6c-.2 0-.6.1-.9.4-.3.3-1.2 1.2-1.2 2.9s1.3 3.4 1.5 3.6c.2.2 2.5 3.8 6 5.3 2.2 1 3.1 1 4.2.8.7-.1 1.7-.7 2-1.4.2-.7.2-1.3.2-1.4-.1-.1-.3-.2-.6-.3Z"/></svg>
               </a>
             </div>
+            <button id="addPropertyButton" class="secondary-button" type="button">+ Add property</button>
             <button id="addPropertyPaymentButton" class="primary-button" type="button">+ Record payment</button>
           </div>
         </header>
@@ -316,7 +319,10 @@
             <h1>Tenants</h1>
             <p class="subtitle">Search occupants and review their current rent status.</p>
           </div>
-          <button id="addTenantPaymentButton" class="primary-button" type="button">+ Record payment</button>
+          <div class="topbar-actions">
+            <button id="downloadAdminStatementButton" class="secondary-button" type="button">Download statement</button>
+            <button id="addTenantPaymentButton" class="primary-button" type="button">+ Record payment</button>
+          </div>
         </header>
         <section id="tenantSummary" class="mini-summary-grid" aria-label="Tenant summary"></section>
         <section class="panel directory-panel">
@@ -360,7 +366,7 @@
                   <th>Customer</th>
                   <th>Phone</th>
                   <th>Rent records</th>
-                  <th>Account action</th>
+                  <th>Actions</th>
                 </tr>
               </thead>
               <tbody id="customerAccountTable"></tbody>
@@ -376,7 +382,10 @@
             <h1>Payments</h1>
             <p class="subtitle">Review all rent activity and quickly find outstanding balances.</p>
           </div>
-          <button id="addLedgerPaymentButton" class="primary-button" type="button">+ Record payment</button>
+          <div class="topbar-actions">
+            <button id="downloadPaymentStatementButton" class="secondary-button" type="button">Download statement</button>
+            <button id="addLedgerPaymentButton" class="primary-button" type="button">+ Record payment</button>
+          </div>
         </header>
         <section id="paymentSummary" class="mini-summary-grid" aria-label="Payment summary"></section>
         <section class="panel directory-panel">
@@ -411,11 +420,23 @@
                   <th>Due date</th>
                   <th>Paid on</th>
                   <th>Status</th>
+                  <th>Actions</th>
                 </tr>
               </thead>
               <tbody id="allPaymentTable"></tbody>
             </table>
           </div>
+        </section>
+        <section class="panel directory-panel reminders-panel">
+          <div class="directory-toolbar">
+            <div>
+              <p class="eyebrow">AUTOMATIC FOLLOW-UP</p>
+              <h2>Reminder queue</h2>
+              <p class="subtitle">Upcoming and overdue reminders are generated automatically.</p>
+            </div>
+            <button id="refreshRemindersButton" class="secondary-button" type="button">Refresh reminders</button>
+          </div>
+          <div id="reminderList" class="reminder-list"></div>
         </section>
       </section>
     </main>
@@ -423,10 +444,11 @@
 
   <dialog id="paymentDialog">
     <form id="paymentForm">
+      <input id="paymentRecordId" name="recordId" type="hidden">
       <div class="dialog-heading">
         <div>
           <p class="eyebrow">NEW ENTRY</p>
-          <h2>Record a rent payment</h2>
+          <h2 id="paymentDialogTitle">Record a rent payment</h2>
         </div>
         <button id="closeDialog" class="icon-button" type="button" aria-label="Close">×</button>
       </div>
@@ -442,7 +464,53 @@
       </div>
       <label>Payment date<input name="paidDate" type="date"></label>
       <p class="form-hint">Leave payment date empty to mark the rent as unpaid.</p>
-      <button class="primary-button full-width" type="submit">Save payment</button>
+      <button id="savePaymentButton" class="primary-button full-width" type="submit">Save payment</button>
+      <button id="deletePaymentButton" class="danger-button full-width" type="button" hidden>Delete payment record</button>
+      <p id="paymentFormMessage" class="auth-message" role="status" aria-live="polite"></p>
+    </form>
+  </dialog>
+
+  <dialog id="propertyDialog">
+    <form id="propertyForm">
+      <input id="propertyId" name="propertyId" type="hidden">
+      <div class="dialog-heading">
+        <div>
+          <p class="eyebrow">PROPERTY MANAGEMENT</p>
+          <h2 id="propertyDialogTitle">Add a property</h2>
+        </div>
+        <button id="closePropertyDialog" class="icon-button" type="button" aria-label="Close">×</button>
+      </div>
+      <label>Property name<input id="propertyName" name="name" maxlength="120" required></label>
+      <label>Property type<input id="propertyType" name="propertyType" maxlength="80" placeholder="Residential building"></label>
+      <label>Address<input id="propertyAddress" name="address" maxlength="180"></label>
+      <label>Monthly target<input id="propertyMonthlyTarget" name="monthlyTarget" min="0" step="1" type="number"></label>
+      <label>Status
+        <select id="propertyStatus" name="status">
+          <option value="active">Active</option>
+          <option value="archived">Archived</option>
+        </select>
+      </label>
+      <button class="primary-button full-width" type="submit">Save property</button>
+      <button id="deletePropertyButton" class="danger-button full-width" type="button" hidden>Delete property</button>
+      <p id="propertyFormMessage" class="auth-message" role="status" aria-live="polite"></p>
+    </form>
+  </dialog>
+
+  <dialog id="customerAdminDialog">
+    <form id="customerAdminForm">
+      <input id="adminCustomerId" name="customerId" type="hidden">
+      <div class="dialog-heading">
+        <div>
+          <p class="eyebrow">CUSTOMER MANAGEMENT</p>
+          <h2>Edit customer</h2>
+        </div>
+        <button id="closeCustomerAdminDialog" class="icon-button" type="button" aria-label="Close">×</button>
+      </div>
+      <label>Full name<input id="adminCustomerName" name="fullName" maxlength="100" required></label>
+      <label>Phone number<input id="adminCustomerPhone" name="phone" maxlength="30"></label>
+      <label>Email address<input id="adminCustomerEmail" type="email" disabled></label>
+      <button class="primary-button full-width" type="submit">Save customer</button>
+      <p id="customerAdminMessage" class="auth-message" role="status" aria-live="polite"></p>
     </form>
   </dialog>
 
@@ -489,6 +557,6 @@
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="config.js?v=secure-portal-v1"></script>
-  <script src="app.js?v=customer-portal-v2"></script>
+  <script src="app.js?v=management-suite-v1"></script>
 </body>
 </html>
