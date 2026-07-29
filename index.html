@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="description" content="Futura Group rent and property tracker">
   <title>Futura Group</title>
-  <link rel="stylesheet" href="styles.css?v=customer-home-v1">
+  <link rel="stylesheet" href="styles.css?v=customer-portal-v2">
 </head>
 <body>
   <div class="advert-ticker" role="region" aria-label="Futura Group website advertisements">
@@ -50,21 +50,46 @@
       </div>
       <form id="loginForm" class="auth-form">
         <label>Email address<input id="loginEmail" name="email" type="email" autocomplete="email" required></label>
-        <label>Password<input id="loginPassword" name="password" type="password" autocomplete="current-password" required></label>
+        <label>Password
+          <span class="password-field">
+            <input id="loginPassword" name="password" type="password" autocomplete="current-password" required>
+            <button class="password-toggle" type="button" data-password-toggle="loginPassword" aria-label="Show password" aria-pressed="false">Show</button>
+          </span>
+        </label>
         <button class="primary-button full-width" type="submit">Sign in</button>
       </form>
       <form id="signupForm" class="auth-form" hidden>
         <label>Full name<input id="signupName" name="fullName" type="text" autocomplete="name" maxlength="100" required></label>
         <label>Phone number<input id="signupPhone" name="phone" type="tel" autocomplete="tel" maxlength="30" required></label>
         <label>Email address<input id="signupEmail" name="email" type="email" autocomplete="email" required></label>
-        <label>Password<input id="signupPassword" name="password" type="password" autocomplete="new-password" minlength="8" required></label>
-        <label>Confirm password<input id="signupConfirmPassword" name="confirmPassword" type="password" autocomplete="new-password" minlength="8" required></label>
+        <label>Password
+          <span class="password-field">
+            <input id="signupPassword" name="password" type="password" autocomplete="new-password" minlength="8" required>
+            <button class="password-toggle" type="button" data-password-toggle="signupPassword" aria-label="Show password" aria-pressed="false">Show</button>
+          </span>
+        </label>
+        <label>Confirm password
+          <span class="password-field">
+            <input id="signupConfirmPassword" name="confirmPassword" type="password" autocomplete="new-password" minlength="8" required>
+            <button class="password-toggle" type="button" data-password-toggle="signupConfirmPassword" aria-label="Show password" aria-pressed="false">Show</button>
+          </span>
+        </label>
         <button class="primary-button full-width" type="submit">Create my account</button>
         <p class="signup-note">New accounts are created as private customer accounts. Only you and authorised Futura administrators can access your details.</p>
       </form>
       <form id="recoveryForm" class="auth-form" hidden>
-        <label>New password<input id="newPassword" name="password" type="password" autocomplete="new-password" minlength="8" required></label>
-        <label>Confirm new password<input id="confirmPassword" name="confirmPassword" type="password" autocomplete="new-password" minlength="8" required></label>
+        <label>New password
+          <span class="password-field">
+            <input id="newPassword" name="password" type="password" autocomplete="new-password" minlength="8" required>
+            <button class="password-toggle" type="button" data-password-toggle="newPassword" aria-label="Show password" aria-pressed="false">Show</button>
+          </span>
+        </label>
+        <label>Confirm new password
+          <span class="password-field">
+            <input id="confirmPassword" name="confirmPassword" type="password" autocomplete="new-password" minlength="8" required>
+            <button class="password-toggle" type="button" data-password-toggle="confirmPassword" aria-label="Show password" aria-pressed="false">Show</button>
+          </span>
+        </label>
         <button class="primary-button full-width" type="submit">Update password</button>
       </form>
       <button id="forgotPasswordButton" class="text-button" type="button">Forgot your password?</button>
@@ -82,17 +107,26 @@
         <img class="brand-logo" src="futura-group-logo.jpg" alt="Futura Group">
       </a>
       <nav aria-label="Main navigation">
-        <button id="overviewNav" class="nav-item active" type="button">
+        <button id="overviewNav" class="nav-item admin-nav-item active" type="button">
           <span class="nav-main"><span class="nav-icon" aria-hidden="true">⌂</span><span>Overview</span></span>
         </button>
-        <button id="propertiesNav" class="nav-item" type="button">
+        <button id="propertiesNav" class="nav-item admin-nav-item" type="button">
           <span class="nav-main"><span class="nav-icon" aria-hidden="true">▦</span><span>Properties</span></span>
         </button>
-        <button id="tenantsNav" class="nav-item" type="button">
+        <button id="tenantsNav" class="nav-item admin-nav-item" type="button">
           <span class="nav-main"><span class="nav-icon" aria-hidden="true">♟</span><span>Tenants</span></span><span class="new-badge">NEW</span>
         </button>
-        <button id="paymentsNav" class="nav-item" type="button">
+        <button id="paymentsNav" class="nav-item admin-nav-item" type="button">
           <span class="nav-main"><span class="nav-icon" aria-hidden="true">₣</span><span>Payments</span></span><span class="new-badge">NEW</span>
+        </button>
+        <button id="customerHomeNav" class="nav-item customer-nav-item active" type="button">
+          <span class="nav-main"><span class="nav-icon" aria-hidden="true">⌂</span><span>Overview</span></span>
+        </button>
+        <button id="customerProfileNav" class="nav-item customer-nav-item" type="button">
+          <span class="nav-main"><span class="nav-icon" aria-hidden="true">●</span><span>My profile</span></span>
+        </button>
+        <button id="customerPaymentsNav" class="nav-item customer-nav-item" type="button">
+          <span class="nav-main"><span class="nav-icon" aria-hidden="true">₣</span><span>Payments</span></span>
         </button>
       </nav>
       <button id="themeToggle" class="theme-toggle" type="button" aria-pressed="false" aria-label="Switch to night mode">
@@ -123,7 +157,7 @@
             <p class="subtitle">Your private tenancy and payment information.</p>
           </div>
         </header>
-        <section class="account-glance" aria-labelledby="accountGlanceTitle">
+        <section id="customerOverviewSection" class="account-glance" aria-labelledby="accountGlanceTitle">
           <div class="account-glance-copy">
             <p class="eyebrow">ACCOUNT AT A GLANCE</p>
             <span id="customerAccountStatus" class="glance-status">Account ready</span>
@@ -147,14 +181,14 @@
           </div>
         </section>
         <section id="customerSummary" class="mini-summary-grid" aria-label="My account summary"></section>
-        <section class="panel customer-profile-panel">
+        <section id="customerProfileSection" class="panel customer-profile-panel">
           <div>
             <p class="eyebrow">PERSONAL DETAILS</p>
             <h2>My profile</h2>
           </div>
           <dl id="customerProfile" class="profile-details"></dl>
         </section>
-        <section class="panel directory-panel customer-ledger">
+        <section id="customerPaymentsSection" class="panel directory-panel customer-ledger">
           <div class="directory-toolbar">
             <div>
               <p class="eyebrow">PAYMENT HISTORY</p>
@@ -409,6 +443,6 @@
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="config.js?v=secure-portal-v1"></script>
-  <script src="app.js?v=customer-home-v1"></script>
+  <script src="app.js?v=customer-portal-v2"></script>
 </body>
 </html>

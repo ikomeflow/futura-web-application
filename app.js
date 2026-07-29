@@ -488,6 +488,34 @@ function openPaymentDialog() {
   if (currentProfile?.role === "admin") dialog.showModal();
 }
 
+document.querySelectorAll("[data-password-toggle]").forEach(button => {
+  button.addEventListener("click", () => {
+    const input = document.getElementById(button.dataset.passwordToggle);
+    if (!input) return;
+    const showing = input.type === "text";
+    input.type = showing ? "password" : "text";
+    button.textContent = showing ? "Show" : "Hide";
+    button.setAttribute("aria-label", showing ? "Show password" : "Hide password");
+    button.setAttribute("aria-pressed", String(!showing));
+    input.focus({ preventScroll: true });
+  });
+});
+
+function navigateCustomerSection(sectionId, activeButton) {
+  if (currentProfile?.role === "admin") return;
+  document.querySelectorAll(".customer-nav-item").forEach(button => {
+    button.classList.toggle("active", button === activeButton);
+  });
+  document.getElementById(sectionId)?.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+const customerHomeNav = document.querySelector("#customerHomeNav");
+const customerProfileNav = document.querySelector("#customerProfileNav");
+const customerPaymentsNav = document.querySelector("#customerPaymentsNav");
+customerHomeNav.addEventListener("click", () => navigateCustomerSection("customerOverviewSection", customerHomeNav));
+customerProfileNav.addEventListener("click", () => navigateCustomerSection("customerProfileSection", customerProfileNav));
+customerPaymentsNav.addEventListener("click", () => navigateCustomerSection("customerPaymentsSection", customerPaymentsNav));
+
 loginForm.addEventListener("submit", async event => {
   event.preventDefault();
   if (!db) return;
