@@ -128,6 +128,12 @@ select { font: inherit; }
   object-fit: cover;
   background: #000;
 }
+.services-socials {
+  position: absolute;
+  z-index: 1;
+  top: 32px;
+  right: 32px;
+}
 .service-categories {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -603,6 +609,10 @@ form select:focus { border-color: var(--green); box-shadow: 0 0 0 3px var(--gree
     top: 18px;
     left: 18px;
     width: 140px;
+  }
+  .services-socials {
+    top: 18px;
+    right: 18px;
   }
   .service-categories {
     grid-template-columns: 1fr;
