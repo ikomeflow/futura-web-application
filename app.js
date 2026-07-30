@@ -18,7 +18,10 @@ let pendingDeletion = null;
 
 const authView = document.querySelector("#authView");
 const servicesHub = document.querySelector("#servicesHub");
+const ecommerceView = document.querySelector("#ecommerceView");
 const appShell = document.querySelector("#appShell");
+const ecommerceServiceButton = document.querySelector("#ecommerceServiceButton");
+const ecommerceBackButton = document.querySelector("#ecommerceBackButton");
 const realEstateServiceButton = document.querySelector("#realEstateServiceButton");
 const servicesNav = document.querySelector("#servicesNav");
 const loginForm = document.querySelector("#loginForm");
@@ -151,6 +154,7 @@ function mapProperty(row) {
 function showAuth() {
   authView.hidden = false;
   servicesHub.hidden = true;
+  ecommerceView.hidden = true;
   appShell.hidden = true;
   document.body.classList.remove("customer-mode", "services-mode");
 }
@@ -158,6 +162,7 @@ function showAuth() {
 function showApp(role) {
   authView.hidden = true;
   servicesHub.hidden = true;
+  ecommerceView.hidden = true;
   appShell.hidden = false;
   document.body.classList.remove("services-mode");
   const isCustomer = role !== "admin";
@@ -168,9 +173,18 @@ function showApp(role) {
 function showServicesHub(role) {
   authView.hidden = true;
   servicesHub.hidden = false;
+  ecommerceView.hidden = true;
   appShell.hidden = true;
   document.body.classList.add("services-mode");
   document.body.classList.toggle("customer-mode", role !== "admin");
+}
+
+function showEcommerceView() {
+  authView.hidden = true;
+  servicesHub.hidden = true;
+  ecommerceView.hidden = false;
+  appShell.hidden = true;
+  document.body.classList.add("services-mode");
 }
 
 function setAccountDetails() {
@@ -693,6 +707,12 @@ const customerPaymentsNav = document.querySelector("#customerPaymentsNav");
 customerHomeNav.addEventListener("click", () => navigateCustomerSection("customerOverviewSection", customerHomeNav));
 customerProfileNav.addEventListener("click", () => navigateCustomerSection("customerProfileSection", customerProfileNav));
 customerPaymentsNav.addEventListener("click", () => navigateCustomerSection("customerPaymentsSection", customerPaymentsNav));
+ecommerceServiceButton.addEventListener("click", () => {
+  if (currentProfile) showEcommerceView();
+});
+ecommerceBackButton.addEventListener("click", () => {
+  if (currentProfile) showServicesHub(currentProfile.role);
+});
 realEstateServiceButton.addEventListener("click", () => {
   if (!currentProfile) return;
   showApp(currentProfile.role);

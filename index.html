@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="description" content="Futura Group rent and property tracker">
   <title>Futura Group</title>
-  <link rel="stylesheet" href="styles.css?v=services-hub-v3">
+  <link rel="stylesheet" href="styles.css?v=services-hub-v4">
 </head>
 <body>
   <div class="advert-ticker" role="region" aria-label="Futura Group website advertisements">
@@ -117,12 +117,38 @@
       <button class="service-category" type="button" disabled>
         <span>PINSEO services</span>
       </button>
-      <button class="service-category" type="button" disabled>
+      <button id="ecommerceServiceButton" class="service-category service-category-active" type="button">
         <span>E-commerce services</span>
       </button>
       <button id="realEstateServiceButton" class="service-category service-category-active" type="button">
         <span>Real estate services</span>
       </button>
+    </div>
+  </section>
+
+  <section id="ecommerceView" class="ecommerce-view" aria-label="Futura Group e-commerce websites" hidden>
+    <div class="services-brand">
+      <img class="services-brand-logo" src="futura-group-logo.jpg" alt="Futura Group">
+    </div>
+    <div class="ecommerce-content">
+      <button id="ecommerceBackButton" class="ecommerce-back" type="button">← All services</button>
+      <div class="ecommerce-links">
+        <a class="ecommerce-site" href="https://gracesuits.com" target="_blank" rel="noopener noreferrer">
+          <span>Gracesuits.com</span><span aria-hidden="true">↗</span>
+        </a>
+        <a class="ecommerce-site" href="https://pinpets.ca" target="_blank" rel="noopener noreferrer">
+          <span>Pinpets.ca</span><span aria-hidden="true">↗</span>
+        </a>
+        <a class="ecommerce-site" href="https://pinpets.us" target="_blank" rel="noopener noreferrer">
+          <span>Pinpets.us</span><span aria-hidden="true">↗</span>
+        </a>
+        <a class="ecommerce-site" href="https://pinpets.uk" target="_blank" rel="noopener noreferrer">
+          <span>Pinpets.uk</span><span aria-hidden="true">↗</span>
+        </a>
+        <a class="ecommerce-site" href="https://pinpetstore.com" target="_blank" rel="noopener noreferrer">
+          <span>Pinpetstore.com</span><span aria-hidden="true">↗</span>
+        </a>
+      </div>
     </div>
   </section>
 
@@ -585,6 +611,6 @@
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="config.js?v=secure-portal-v1"></script>
-  <script src="app.js?v=services-hub-v3"></script>
+  <script src="app.js?v=services-hub-v4"></script>
 </body>
 </html>

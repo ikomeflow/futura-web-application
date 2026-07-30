@@ -103,7 +103,8 @@ select { font: inherit; }
   .ticker-track { animation: none; }
 }
 .app-shell { display: grid; grid-template-columns: 235px minmax(0, 1fr); min-height: calc(100vh - var(--advert-height)); }
-.services-hub {
+.services-hub,
+.ecommerce-view {
   position: relative;
   display: grid;
   place-items: center;
@@ -133,6 +134,62 @@ select { font: inherit; }
   z-index: 1;
   top: 32px;
   right: 32px;
+}
+.ecommerce-content {
+  display: grid;
+  gap: 24px;
+  width: min(980px, 100%);
+}
+.ecommerce-back {
+  width: fit-content;
+  padding: 10px 14px;
+  border: 1px solid rgba(255,255,255,.28);
+  border-radius: 10px;
+  color: white;
+  background: rgba(255,255,255,.08);
+  font-weight: 800;
+}
+.ecommerce-back:hover,
+.ecommerce-back:focus-visible {
+  background: rgba(255,255,255,.16);
+  outline: 3px solid rgba(157,201,255,.24);
+}
+.ecommerce-links {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 18px;
+}
+.ecommerce-site {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  min-height: 120px;
+  padding: 24px;
+  border: 1px solid rgba(255,255,255,.25);
+  border-radius: 18px;
+  color: white;
+  background: rgba(255,255,255,.1);
+  box-shadow: 0 18px 44px rgba(1,12,30,.22);
+  backdrop-filter: blur(12px);
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: clamp(21px, 2.2vw, 29px);
+  line-height: 1.2;
+  text-decoration: none;
+  transition: transform 180ms ease, background 180ms ease, border-color 180ms ease, box-shadow 180ms ease;
+}
+.ecommerce-site span:last-child {
+  flex: 0 0 auto;
+  font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+  font-size: 22px;
+}
+.ecommerce-site:hover,
+.ecommerce-site:focus-visible {
+  transform: translateY(-4px);
+  border-color: white;
+  background: rgba(23,111,214,.48);
+  box-shadow: 0 24px 54px rgba(1,12,30,.34);
+  outline: 4px solid rgba(157,201,255,.24);
 }
 .service-categories {
   display: grid;
@@ -601,7 +658,8 @@ form select:focus { border-color: var(--green); box-shadow: 0 0 0 3px var(--gree
   .sidebar-signout { min-height: 36px; padding-inline: 8px; font-size: 10px; }
 }
 @media (max-width: 760px) {
-  .services-hub {
+  .services-hub,
+  .ecommerce-view {
     align-items: center;
     padding: 116px 18px 28px;
   }
@@ -613,6 +671,12 @@ form select:focus { border-color: var(--green); box-shadow: 0 0 0 3px var(--gree
   .services-socials {
     top: 18px;
     right: 18px;
+  }
+  .ecommerce-content {
+    gap: 18px;
+  }
+  .ecommerce-site {
+    min-height: 96px;
   }
   .service-categories {
     grid-template-columns: 1fr;
