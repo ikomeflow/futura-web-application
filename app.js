@@ -913,7 +913,7 @@ profileForm.addEventListener("submit", async event => {
   profileMessage.textContent = "Your details have been saved.";
   profileMessage.className = "auth-message success";
 });
-document.querySelector("#customerAccountTable").addEventListener("click", event => {
+document.querySelector("#customerAccountTable").addEventListener("click", async event => {
   const button = event.target.closest("[data-user-id]");
   if (!button || currentProfile?.role !== "admin") return;
   if (button.dataset.action === "edit-customer") {
@@ -921,12 +921,18 @@ document.querySelector("#customerAccountTable").addEventListener("click", event 
     return;
   }
   if (button.dataset.action !== "delete-customer") return;
-  openDeleteAccountDialog({
-    mode: "admin",
-    userId: button.dataset.userId,
-    name: button.dataset.userName,
-    email: button.dataset.userEmail
+  button.disabled = true;
+  button.textContent = "Deleting…";
+  const { error } = await db.rpc("admin_delete_user", {
+    target_user_id: button.dataset.userId
   });
+  if (error) {
+    button.disabled = false;
+    button.textContent = "Delete account";
+    window.alert(error.message || "The account could not be deleted.");
+    return;
+  }
+  await loadSecureData();
 });
 document.querySelector("#deleteConfirmationInput").addEventListener("input", event => {
   document.querySelector("#confirmDeleteAccountButton").disabled =
