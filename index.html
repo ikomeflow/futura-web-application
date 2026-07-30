@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="description" content="Futura Group rent and property tracker">
   <title>Futura Group</title>
-  <link rel="stylesheet" href="styles.css?v=admin-delete-v2">
+  <link rel="stylesheet" href="styles.css?v=services-hub-v1">
 </head>
 <body>
   <div class="advert-ticker" role="region" aria-label="Futura Group website advertisements">
@@ -101,12 +101,29 @@
     </section>
   </main>
 
+  <section id="servicesHub" class="services-hub" aria-label="Futura Group services" hidden>
+    <div class="service-categories">
+      <button class="service-category" type="button" disabled>
+        <span>PINSEO services</span>
+      </button>
+      <button class="service-category" type="button" disabled>
+        <span>E-commerce services</span>
+      </button>
+      <button id="realEstateServiceButton" class="service-category service-category-active" type="button">
+        <span>Real estate services</span>
+      </button>
+    </div>
+  </section>
+
   <div id="appShell" class="app-shell" hidden>
     <aside class="sidebar">
       <a class="brand" href="#">
         <img class="brand-logo" src="futura-group-logo.jpg" alt="Futura Group">
       </a>
       <nav aria-label="Main navigation">
+        <button id="servicesNav" class="nav-item service-nav-item" type="button">
+          <span class="nav-main"><span class="nav-icon" aria-hidden="true">←</span><span>All services</span></span>
+        </button>
         <button id="overviewNav" class="nav-item admin-nav-item active" type="button">
           <span class="nav-main"><span class="nav-icon" aria-hidden="true">⌂</span><span>Overview</span></span>
         </button>
@@ -557,6 +574,6 @@
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="config.js?v=secure-portal-v1"></script>
-  <script src="app.js?v=admin-delete-v2"></script>
+  <script src="app.js?v=services-hub-v1"></script>
 </body>
 </html>

@@ -17,7 +17,10 @@ let recoveryMode = false;
 let pendingDeletion = null;
 
 const authView = document.querySelector("#authView");
+const servicesHub = document.querySelector("#servicesHub");
 const appShell = document.querySelector("#appShell");
+const realEstateServiceButton = document.querySelector("#realEstateServiceButton");
+const servicesNav = document.querySelector("#servicesNav");
 const loginForm = document.querySelector("#loginForm");
 const signupForm = document.querySelector("#signupForm");
 const recoveryForm = document.querySelector("#recoveryForm");
@@ -147,16 +150,27 @@ function mapProperty(row) {
 
 function showAuth() {
   authView.hidden = false;
+  servicesHub.hidden = true;
   appShell.hidden = true;
-  document.body.classList.remove("customer-mode");
+  document.body.classList.remove("customer-mode", "services-mode");
 }
 
 function showApp(role) {
   authView.hidden = true;
+  servicesHub.hidden = true;
   appShell.hidden = false;
+  document.body.classList.remove("services-mode");
   const isCustomer = role !== "admin";
   appShell.classList.toggle("customer-mode", isCustomer);
   document.body.classList.toggle("customer-mode", isCustomer);
+}
+
+function showServicesHub(role) {
+  authView.hidden = true;
+  servicesHub.hidden = false;
+  appShell.hidden = true;
+  document.body.classList.add("services-mode");
+  document.body.classList.toggle("customer-mode", role !== "admin");
 }
 
 function setAccountDetails() {
@@ -237,12 +251,7 @@ async function handleSession(session) {
     await loadProfile();
     await loadSecureData();
     setAccountDetails();
-    showApp(currentProfile.role);
-    if (currentProfile.role === "admin") {
-      showView(currentViewFromUrl());
-    } else {
-      showView("customer");
-    }
+    showServicesHub(currentProfile.role);
     setAuthMessage("");
   } catch (error) {
     showAuth();
@@ -684,6 +693,14 @@ const customerPaymentsNav = document.querySelector("#customerPaymentsNav");
 customerHomeNav.addEventListener("click", () => navigateCustomerSection("customerOverviewSection", customerHomeNav));
 customerProfileNav.addEventListener("click", () => navigateCustomerSection("customerProfileSection", customerProfileNav));
 customerPaymentsNav.addEventListener("click", () => navigateCustomerSection("customerPaymentsSection", customerPaymentsNav));
+realEstateServiceButton.addEventListener("click", () => {
+  if (!currentProfile) return;
+  showApp(currentProfile.role);
+  showView(currentProfile.role === "admin" ? currentViewFromUrl() : "customer");
+});
+servicesNav.addEventListener("click", () => {
+  if (currentProfile) showServicesHub(currentProfile.role);
+});
 
 loginForm.addEventListener("submit", async event => {
   event.preventDefault();
